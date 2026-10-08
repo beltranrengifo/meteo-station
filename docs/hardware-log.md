@@ -35,3 +35,11 @@
 - Observed values: still = 0 pulses. Spinning by hand: 5-28 pulses per 5 s, average 0.67-3.74 m/s, gust 1.11-4.45 m/s. Math checks out (e.g. 28 pulses / 5 s x 0.667 = 3.74 m/s); gust always >= average. Debounce check: 10 slow turns by hand = exactly 10 pulses (one pulse per turn, no bounce).
 - Problems and fix: none.
 - config.h changes: none.
+
+## 2026-10-08 — Test: rain gauge module (interrupt, 200 ms debounce)
+- Goal: count bucket tips with debounce and convert to mm through `src/sensors/rain_gauge.cpp`.
+- Setup: USB power, on the bench. GPIO 33, external 10k pull-up, FALLING interrupt. Summary every 5 s for the test (station: 60 s).
+- Result: OK.
+- Observed values: still = 0 tips. 10 slow tips by hand = 3 + 3 + 2 + 2 = exactly 10 tips, 2.794 mm. Without debounce one tip gave 6-9 pulses; 200 ms removes the bounce.
+- Problems and fix: none.
+- config.h changes: none (RAIN_DEBOUNCE_MS = 200, spec value).

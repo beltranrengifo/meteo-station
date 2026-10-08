@@ -5,6 +5,7 @@
 #include "net/wifi_connection.h"
 #include "sensors/anemometer.h"
 #include "sensors/bme280_sensor.h"
+#include "sensors/rain_gauge.h"
 
 static constexpr uint32_t STATUS_PRINT_INTERVAL_MS = 5000;
 static uint32_t lastStatusPrint = 0;
@@ -19,6 +20,7 @@ void setup() {
   timeBegin();
   bme280Begin();
   anemometerBegin();
+  rainGaugeBegin();
 }
 
 void loop() {
@@ -50,5 +52,8 @@ void loop() {
     WindSummary wind = anemometerTakeSummary();
     Serial.printf("[wind] %lu pulses in %d s, avg %.2f m/s (%.1f km/h), gust %.2f m/s (%.1f km/h)\n",
                   (unsigned long)wind.pulses, wind.seconds, wind.avgMs, wind.avgMs * 3.6f, wind.gustMs, wind.gustMs * 3.6f);
+
+    RainSummary rain = rainGaugeTakeSummary();
+    Serial.printf("[rain] %lu tips in 5 s, %.4f mm\n", (unsigned long)rain.tips, rain.mm);
   }
 }
