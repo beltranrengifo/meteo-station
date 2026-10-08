@@ -1,5 +1,24 @@
 # Agent Instructions
 
+## Project rules (take precedence over the generic blocks below)
+
+Project: home weather station (ESP32 + BME280 + wind/rain kit) -> Supabase -> web.
+Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-meteo-spec.md` where they differ.
+
+### Hard rules
+- **Never start servers** (dev servers, Supabase local, etc.). The user starts them by hand.
+- **Never run PlatformIO** (`pio run`, `pio run -t upload`, `pio device monitor`, ...). The user builds, flashes and reviews on the board. Agents write code and say which command to run. This rule stays until the user lifts it explicitly.
+- Never commit secrets. `firmware/include/secrets.h` is git-ignored; only `secrets.example.h` is tracked. Never put a Supabase service role key in firmware.
+- Do not change pin assignments unless asked; if changed, update code and docs together.
+- Do not invent facts about hardware or APIs: search, or say it is unknown.
+
+### Conventions
+- All code in English: identifiers, strings, serial messages, comments.
+- Docs may be in Spanish. Say "flashear", not "subir".
+- Hardware tests are logged in `docs/hardware-log.md`.
+- Tasks live in beads (`bd`). Do not use markdown TODO lists.
+- Work in small steps; short answers.
+
 This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
 
 > **Architecture in one line:** Issues live in a local Dolt database

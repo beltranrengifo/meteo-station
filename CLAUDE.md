@@ -1,5 +1,7 @@
 # Project Instructions for AI Agents
 
+**Read `AGENTS.md` first: project rules (no servers, no PlatformIO, no secrets) live there.**
+
 This file provides instructions and context for AI coding agents working on this project.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:6cd5cc61 -->
