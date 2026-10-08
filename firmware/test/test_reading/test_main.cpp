@@ -9,7 +9,7 @@ static constexpr time_t T_10_15_00 = 1792491300;
 
 static StationReading sampleReading() {
   StationReading r;
-  r.deviceId = "meteo-station-tomillaron-1";
+  r.deviceId = "meteo-station-1";
   r.ts = T_10_15_00;
   r.tempC = 18.4f;
   r.humidityPct = 62.1f;
@@ -50,7 +50,7 @@ void test_json_matches_the_payload_format() {
   char out[400];
   int written = formatReadingJson(sampleReading(), out, sizeof(out));
   const char *expected =
-      "{\"device_id\":\"meteo-station-tomillaron-1\",\"ts\":\"2026-10-20T10:15:00Z\","
+      "{\"device_id\":\"meteo-station-1\",\"ts\":\"2026-10-20T10:15:00Z\","
       "\"temp_c\":18.4,\"humidity_pct\":62.1,\"pressure_hpa\":1016.3,"
       "\"wind_avg_ms\":2.10,\"wind_gust_ms\":4.60,\"wind_dir_deg\":225,"
       "\"rain_mm\":0.2794,\"rssi\":-67,\"uptime_s\":86400,\"fw\":\"0.1.0\"}";

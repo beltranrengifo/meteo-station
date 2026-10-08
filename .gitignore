@@ -10,3 +10,9 @@
 firmware/.pio/
 firmware/.vscode/
 firmware/include/secrets.h
+
+# Secrets and local tool state (Supabase, Vercel)
+.env*
+!.env.example
+**/supabase/.temp/
+.vercel/

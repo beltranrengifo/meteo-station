@@ -18,7 +18,7 @@ Fecha de la especificación: 30 de septiembre de 2026.
 
 ## 1. Objetivo
 
-Una estación meteorológica en el jardín de casa (Las Rozas, Madrid) que:
+Una estación meteorológica en el jardín de casa (Madrid, zona noroeste) que:
 
 1. Mide temperatura, humedad, presión, velocidad del viento, racha, dirección del viento y lluvia.
 2. Se conecta al WiFi de casa y envía una lectura por minuto a una base de datos en Supabase.
@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
 
 ### 6.4 Datos externos: índice UV
 
-- Open-Meteo, sin clave: `https://api.open-meteo.com/v1/forecast?latitude=40.49&longitude=-3.87&hourly=uv_index&timezone=Europe/Madrid` (coordenadas aproximadas de Las Rozas: ajustar a la ubicación exacta).
+- Open-Meteo, sin clave: `https://api.open-meteo.com/v1/forecast?latitude=<LAT>&longitude=<LON>&hourly=uv_index&timezone=Europe/Madrid`. Las coordenadas de la estación no se guardan en el repositorio: van en una variable de entorno.
 - Es un dato de modelo, no medido. Para histórico UV, verificar qué ofrece su API de archivo.
 
 ### 6.5 Front-end

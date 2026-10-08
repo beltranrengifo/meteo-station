@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ---- Device ----
-#define DEVICE_ID "meteo-station-tomillaron-1"
+#define DEVICE_ID "meteo-station-1"
 #define FW_VERSION "0.1.0"
 
 // ---- Pins (validated on the bench) ----

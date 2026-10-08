@@ -1,15 +1,8 @@
-# Contexto para Claude Code: estación meteorológica de Belt
+# Contexto para Claude Code: estación meteorológica
 
 Traspaso desde la sesión de chat del 8 de octubre de 2026. El documento completo de diseño está en `docs/estacion-meteo-spec.md` (objetivo, compra, hardware, fases, SQL de Supabase, Edge Function, front-end). **Este fichero manda sobre la spec donde haya diferencias**: recoge lo validado en el banco de pruebas.
 
-## Cómo trabajar con Belt
-
-- Frontend engineer (React/TypeScript). Sin experiencia previa en electrónica ni ESP32; aprende rápido.
-- Respuestas **muy cortas**, un paso cada vez. Nada de explicaciones largas ni varios pasos juntos si no los pide.
-- **Nunca inventar.** Si no está claro, buscarlo; si sigue sin estar claro, decirlo.
-- **Todo el código en inglés**: identificadores, strings, mensajes de serie y comentarios. También en pruebas rápidas.
-- Vocabulario: "flashear", no "subir".
-- Los botones de la barra de PlatformIO **no funcionan** en su máquina. Usar terminal: `pio run`, `pio run -t upload`, `pio device monitor -b 115200`, `pio device list`.
+Las reglas de trabajo para agentes están en `AGENTS.md`.
 
 ## Repositorio (monorepo)
 
@@ -30,7 +23,7 @@ Los cuatro sensores leen correctamente en la mesa, por separado y juntos (BME280
 
 | Sensor | Estado | Resultado |
 |---|---|---|
-| BME280 | ✅ | 0x77. Lectura de prueba: 22,3 °C, 59,1 %, 941,2 hPa (coherente con ~700 m de Las Rozas) |
+| BME280 | ✅ | 0x77. Lectura de prueba: 22,3 °C, 59,1 %, 941,2 hPa (coherente con ~700 m de altitud) |
 | Anemómetro | ✅ | Cuenta pulsos al girar; se para al parar |
 | Veleta | ✅ | 8 direcciones distinguibles (ver tabla) |
 | Pluviómetro | ✅ | Cuenta vuelcos; **rebota** (un vuelco suma 6–9 pulsos sin antirrebote) |

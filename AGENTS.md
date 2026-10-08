@@ -12,6 +12,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - Never commit secrets. `firmware/include/secrets.h` is git-ignored; only `secrets.example.h` is tracked. Never put a Supabase service role key in firmware.
 - Do not change pin assignments unless asked; if changed, update code and docs together.
 - Do not invent facts about hardware or APIs: search, or say it is unknown.
+- Never commit personal location data (address, area, exact coordinates). Station coordinates go in env vars.
 
 ### Conventions
 - All code in English: identifiers, strings, serial messages, comments.
@@ -23,7 +24,9 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - Thin wrappers over the ESP32 SDK or sensor libraries (WiFi, NTP, BME280) are not unit-tested: they are validated on the board and logged in `docs/hardware-log.md`.
 - The user runs all `pio` commands, including tests.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
-- Work in small steps; short answers.
+- Work in small steps; short answers, one step at a time. No long explanations or several steps at once unless asked.
+- The maintainer comes from frontend (React/TypeScript) and is new to electronics and ESP32: explain hardware concepts briefly when they come up.
+- Use the `pio` CLI in a terminal (`pio run`, `pio run -t upload`, `pio device monitor`, `pio device list`); the VS Code PlatformIO toolbar does not work on the maintainer's machine.
 
 This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
 
