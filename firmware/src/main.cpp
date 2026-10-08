@@ -6,6 +6,7 @@
 #include "sensors/anemometer.h"
 #include "sensors/bme280_sensor.h"
 #include "sensors/rain_gauge.h"
+#include "sensors/wind_vane.h"
 
 static constexpr uint32_t STATUS_PRINT_INTERVAL_MS = 5000;
 static uint32_t lastStatusPrint = 0;
@@ -21,12 +22,14 @@ void setup() {
   bme280Begin();
   anemometerBegin();
   rainGaugeBegin();
+  windVaneBegin();
 }
 
 void loop() {
   wifiLoop();
   timeLoop();
   anemometerTick();
+  windVaneTick();
 
   // LED: solid when connected, blinking while not.
   bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;
@@ -34,6 +37,7 @@ void loop() {
 
   if (millis() - lastStatusPrint >= STATUS_PRINT_INTERVAL_MS) {
     lastStatusPrint = millis();
+    Serial.println("------------------------------------------------------------");
     char iso[25] = "no valid time";
     timeNowIso(iso, sizeof(iso));
     if (wifiIsConnected()) {
@@ -55,5 +59,9 @@ void loop() {
 
     RainSummary rain = rainGaugeTakeSummary();
     Serial.printf("[rain] %lu tips in 5 s, %.4f mm\n", (unsigned long)rain.tips, rain.mm);
+
+    VaneSummary vane = windVaneTakeSummary();
+    Serial.printf("[vane] adc %d -> %s (%.1f deg), mean of %d samples %.1f deg\n", vane.last.adc,
+                  VANE_POSITIONS[vane.last.index].name, vane.last.degrees, vane.samples, vane.meanDeg);
   }
 }

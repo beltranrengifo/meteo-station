@@ -43,3 +43,11 @@
 - Observed values: still = 0 tips. 10 slow tips by hand = 3 + 3 + 2 + 2 = exactly 10 tips, 2.794 mm. Without debounce one tip gave 6-9 pulses; 200 ms removes the bounce.
 - Problems and fix: none.
 - config.h changes: none (RAIN_DEBOUNCE_MS = 200, spec value).
+
+## 2026-10-08 — Test: wind vane module (ADC, 8 positions, circular mean)
+- Goal: read the vane through `src/sensors/wind_vane.cpp` and map it to the 8 calibrated positions.
+- Setup: USB power, on the bench. GPIO 34 (ADC1), 10k divider to GND. 12-bit ADC, 11 dB. 20 reads averaged per sample, one sample every 5 s. VANE_OFFSET_DEG = 0.
+- Result: OK. All 8 positions (N, NE, E, SE, S, SW, W, NW) reported correctly. Native unit tests green.
+- Observed values: not recorded per position in this run (calibration table from the earlier bench test still valid).
+- Problems and fix: none.
+- config.h changes: none.
