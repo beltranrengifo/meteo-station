@@ -3,6 +3,7 @@
 #include "config.h"
 #include "net/time_sync.h"
 #include "net/wifi_connection.h"
+#include "sensors/anemometer.h"
 #include "sensors/bme280_sensor.h"
 
 static constexpr uint32_t STATUS_PRINT_INTERVAL_MS = 5000;
@@ -17,11 +18,13 @@ void setup() {
   wifiBegin();
   timeBegin();
   bme280Begin();
+  anemometerBegin();
 }
 
 void loop() {
   wifiLoop();
   timeLoop();
+  anemometerTick();
 
   // LED: solid when connected, blinking while not.
   bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;
@@ -42,5 +45,10 @@ void loop() {
     if (bme.ok) {
       Serial.printf("[bme280] %.1f C, %.1f %%, %.1f hPa\n", bme.tempC, bme.humidityPct, bme.pressureHpa);
     }
+
+    // Bench test: summary every 5 s. The station will use 60 s periods.
+    WindSummary wind = anemometerTakeSummary();
+    Serial.printf("[wind] %lu pulses in %d s, avg %.2f m/s (%.1f km/h), gust %.2f m/s (%.1f km/h)\n",
+                  (unsigned long)wind.pulses, wind.seconds, wind.avgMs, wind.avgMs * 3.6f, wind.gustMs, wind.gustMs * 3.6f);
   }
 }
