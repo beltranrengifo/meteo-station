@@ -1,20 +1,33 @@
 #include <Arduino.h>
 
-volatile unsigned long tips = 0;
+#include "config.h"
+#include "net/wifi_connection.h"
 
-void IRAM_ATTR countTip() {
-  tips++;
-}
+static constexpr uint32_t STATUS_PRINT_INTERVAL_MS = 5000;
+static uint32_t lastStatusPrint = 0;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(33, INPUT_PULLUP);
-  attachInterrupt(33, countTip, FALLING);
-  Serial.println("Rain gauge ready");
+  delay(500);
+  Serial.printf("\n%s fw %s\n", DEVICE_ID, FW_VERSION);
+
+  pinMode(PIN_STATUS_LED, OUTPUT);
+  wifiBegin();
 }
 
 void loop() {
-  Serial.print("Tips: ");
-  Serial.println(tips);
-  delay(500);
+  wifiLoop();
+
+  // LED: solid when connected, blinking while not.
+  bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;
+  digitalWrite(PIN_STATUS_LED, led ? HIGH : LOW);
+
+  if (millis() - lastStatusPrint >= STATUS_PRINT_INTERVAL_MS) {
+    lastStatusPrint = millis();
+    if (wifiIsConnected()) {
+      Serial.printf("[status] wifi OK, RSSI %d dBm, uptime %lu s\n", wifiRssi(), millis() / 1000);
+    } else {
+      Serial.println("[status] wifi NOT connected");
+    }
+  }
 }
