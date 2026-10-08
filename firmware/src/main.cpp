@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <reading.h>
 
 #include "config.h"
 #include "net/time_sync.h"
@@ -8,8 +9,43 @@
 #include "sensors/rain_gauge.h"
 #include "sensors/wind_vane.h"
 
-static constexpr uint32_t STATUS_PRINT_INTERVAL_MS = 5000;
-static uint32_t lastStatusPrint = 0;
+// Next minute boundary (UTC) at which a reading is due. 0 until the clock is valid.
+static time_t nextReadingAt = 0;
+
+// Drops whatever the sensors counted so far, so the next period starts clean.
+static void resetSensorPeriods() {
+  anemometerTakeSummary();
+  rainGaugeTakeSummary();
+  windVaneTakeSummary();
+}
+
+static void emitReading(time_t ts) {
+  Bme280Reading bme = bme280Read();
+  WindSummary wind = anemometerTakeSummary();
+  RainSummary rain = rainGaugeTakeSummary();
+  VaneSummary vane = windVaneTakeSummary();
+
+  StationReading reading;
+  reading.deviceId = DEVICE_ID;
+  reading.ts = ts;
+  reading.tempC = bme.tempC;
+  reading.humidityPct = bme.humidityPct;
+  reading.pressureHpa = bme.pressureHpa;
+  reading.windAvgMs = wind.avgMs;
+  reading.windGustMs = wind.gustMs;
+  reading.windDirDeg = vane.meanDeg;
+  reading.rainMm = rain.mm;
+  reading.rssi = wifiIsConnected() ? wifiRssi() : RSSI_UNKNOWN;
+  reading.uptimeS = millis() / 1000;
+  reading.fw = FW_VERSION;
+
+  char json[400];
+  if (formatReadingJson(reading, json, sizeof(json)) < 0) {
+    Serial.println("[reading] JSON buffer too small");
+    return;
+  }
+  Serial.printf("[reading] %s\n", json);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -35,33 +71,24 @@ void loop() {
   bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;
   digitalWrite(PIN_STATUS_LED, led ? HIGH : LOW);
 
-  if (millis() - lastStatusPrint >= STATUS_PRINT_INTERVAL_MS) {
-    lastStatusPrint = millis();
-    Serial.println("------------------------------------------------------------");
-    char iso[25] = "no valid time";
-    timeNowIso(iso, sizeof(iso));
-    if (wifiIsConnected()) {
-      Serial.printf("[status] wifi OK, RSSI %d dBm, uptime %lu s, UTC %s\n", wifiRssi(), millis() / 1000, iso);
-    } else {
-      Serial.println("[status] wifi NOT connected");
-    }
+  // Never emit readings without a valid UTC time.
+  if (!timeIsValid()) {
+    return;
+  }
+  time_t now = time(nullptr);
 
-    // Bench test: every 5 s. The station will read once per minute.
-    Bme280Reading bme = bme280Read();
-    if (bme.ok) {
-      Serial.printf("[bme280] %.1f C, %.1f %%, %.1f hPa\n", bme.tempC, bme.humidityPct, bme.pressureHpa);
-    }
+  if (nextReadingAt == 0) {
+    // First valid time: drop what was counted before (no timestamp for it) and emit at the next boundary.
+    // That first reading covers less than a minute; wind averages use the real seconds counted.
+    nextReadingAt = nextMinuteBoundary(now);
+    resetSensorPeriods();
+    Serial.printf("[reading] clock valid, first reading in %ld s\n", (long)(nextReadingAt - now));
+    return;
+  }
 
-    // Bench test: summary every 5 s. The station will use 60 s periods.
-    WindSummary wind = anemometerTakeSummary();
-    Serial.printf("[wind] %lu pulses in %d s, avg %.2f m/s (%.1f km/h), gust %.2f m/s (%.1f km/h)\n",
-                  (unsigned long)wind.pulses, wind.seconds, wind.avgMs, wind.avgMs * 3.6f, wind.gustMs, wind.gustMs * 3.6f);
-
-    RainSummary rain = rainGaugeTakeSummary();
-    Serial.printf("[rain] %lu tips in 5 s, %.4f mm\n", (unsigned long)rain.tips, rain.mm);
-
-    VaneSummary vane = windVaneTakeSummary();
-    Serial.printf("[vane] adc %d -> %s (%.1f deg), mean of %d samples %.1f deg\n", vane.last.adc,
-                  VANE_POSITIONS[vane.last.index].name, vane.last.degrees, vane.samples, vane.meanDeg);
+  if (now >= nextReadingAt) {
+    // Label with the boundary just passed (if loop() ran late, the latest one).
+    emitReading(minuteFloor(now));
+    nextReadingAt = nextMinuteBoundary(now);
   }
 }
