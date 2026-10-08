@@ -1,5 +1,6 @@
 #include "anemometer.h"
 
+#include <debounce.h>
 #include <wind_math.h>
 
 #include "config.h"

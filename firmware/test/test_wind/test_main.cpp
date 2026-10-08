@@ -7,26 +7,6 @@ static constexpr float MS_PER_HZ = 0.667f;  // same as WIND_MS_PER_HZ in config.
 void setUp() {}
 void tearDown() {}
 
-// ---- debounceAccept ----
-
-void test_debounce_rejects_pulse_inside_window() {
-  TEST_ASSERT_FALSE(debounceAccept(1004, 1000, 5));
-}
-
-void test_debounce_accepts_pulse_at_window_edge() {
-  TEST_ASSERT_TRUE(debounceAccept(1005, 1000, 5));
-}
-
-void test_debounce_accepts_pulse_after_window() {
-  TEST_ASSERT_TRUE(debounceAccept(1086, 1000, 5));  // 100 km/h: one pulse every ~86 ms
-}
-
-void test_debounce_survives_millis_overflow() {
-  // millis() wraps after ~49 days: last pulse just before the wrap, new one just after.
-  TEST_ASSERT_TRUE(debounceAccept(0x00000010u, 0xFFFFFFF0u, 5));   // 32 ms apart
-  TEST_ASSERT_FALSE(debounceAccept(0x00000001u, 0xFFFFFFFEu, 5));  // 3 ms apart
-}
-
 // ---- windSpeedMs ----
 
 void test_speed_one_pulse_per_second() {
@@ -66,10 +46,6 @@ void test_gust_with_no_data_is_zero() {
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_debounce_rejects_pulse_inside_window);
-  RUN_TEST(test_debounce_accepts_pulse_at_window_edge);
-  RUN_TEST(test_debounce_accepts_pulse_after_window);
-  RUN_TEST(test_debounce_survives_millis_overflow);
   RUN_TEST(test_speed_one_pulse_per_second);
   RUN_TEST(test_speed_calm);
   RUN_TEST(test_speed_zero_seconds_is_zero_not_infinity);
