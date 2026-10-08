@@ -1,2 +1,3 @@
 {"id":"int-87b7168758260c7199a81ebdc8fcda62","kind":"field_change","created_at":"2026-10-08T10:42:37.641863Z","actor":"Beltrán Rengifo","issue_id":"meteo-v8a","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-605e345385e9e797c95ac0a15fb4148b","kind":"field_change","created_at":"2026-10-08T10:58:37.143576Z","actor":"Beltrán Rengifo","issue_id":"meteo-77a","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-3a29982aa3762d6ec43bca446a840710","kind":"field_change","created_at":"2026-10-08T11:24:07.202737Z","actor":"Beltrán Rengifo","issue_id":"meteo-wjn","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
