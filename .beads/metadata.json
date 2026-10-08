@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "meteo",
+  "project_id": "888becca-7be3-4888-ab28-20ea6fbbcc7c"
+}
