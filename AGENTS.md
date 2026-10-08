@@ -23,6 +23,10 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - Pure logic (vane mapping, circular mean, gust, rain mm, debounce decision, time/JSON formatting) lives in `firmware/lib/` with no Arduino dependency and is unit-tested with Unity in the `native` env (`pio test -e native`, runs on the Mac, no board). Write the test first.
 - Thin wrappers over the ESP32 SDK or sensor libraries (WiFi, NTP, BME280) are not unit-tested: they are validated on the board and logged in `docs/hardware-log.md`.
 - The user runs all `pio` commands, including tests.
+
+### Testing policy (backend)
+- Pure logic of Edge Functions (validation, parsing) lives in its own module next to `index.ts` and is tested with `deno test` (agents may run it: it starts no server).
+- SQL migrations are validated when the user runs `supabase db push`; agents do not start a local Supabase.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
 - Work in small steps; short answers, one step at a time. No long explanations or several steps at once unless asked.
 - The maintainer comes from frontend (React/TypeScript) and is new to electronics and ESP32: explain hardware concepts briefly when they come up.
