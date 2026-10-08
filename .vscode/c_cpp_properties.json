@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Firmware (ESP32 / Arduino)",
+            "includePath": [
+                "${workspaceFolder}/firmware/include",
+                "${workspaceFolder}/firmware/src/**",
+                "${workspaceFolder}/firmware/lib/**",
+                "${workspaceFolder}/firmware/.pio/libdeps/esp32dev/**",
+                "${env:HOME}/.platformio/packages/framework-arduinoespressif32/cores/esp32",
+                "${env:HOME}/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+                "${env:HOME}/.platformio/packages/framework-arduinoespressif32/libraries/**",
+                "${env:HOME}/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/**",
+                "${env:HOME}/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include"
+            ],
+            "defines": [
+                "ARDUINO=10812",
+                "ARDUINO_ARCH_ESP32",
+                "ESP32",
+                "IRAM_ATTR="
+            ],
+            "compilerPath": "${env:HOME}/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-g++",
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}
