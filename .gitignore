@@ -5,3 +5,8 @@
 .beads-credential-key
 .beads/proxieddb/
 .DS_Store
+
+# Firmware (PlatformIO)
+firmware/.pio/
+firmware/.vscode/
+firmware/include/secrets.h
