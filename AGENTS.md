@@ -17,6 +17,11 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - All code in English: identifiers, strings, serial messages, comments.
 - Docs may be in Spanish. Say "flashear", not "subir".
 - Hardware tests are logged in `docs/hardware-log.md`.
+
+### Testing policy (firmware)
+- Pure logic (vane mapping, circular mean, gust, rain mm, debounce decision, time/JSON formatting) lives in `firmware/lib/` with no Arduino dependency and is unit-tested with Unity in the `native` env (`pio test -e native`, runs on the Mac, no board). Write the test first.
+- Thin wrappers over the ESP32 SDK or sensor libraries (WiFi, NTP, BME280) are not unit-tested: they are validated on the board and logged in `docs/hardware-log.md`.
+- The user runs all `pio` commands, including tests.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
 - Work in small steps; short answers.
 
