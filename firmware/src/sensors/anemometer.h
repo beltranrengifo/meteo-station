@@ -15,5 +15,8 @@ void anemometerBegin();
 // Call from loop(): stores the pulses of each completed second (needed for the gust).
 void anemometerTick();
 
+// Pulses since boot (for the self-check).
+uint32_t anemometerTotalPulses();
+
 // Average and gust over the seconds since the previous call, then starts a new period.
 WindSummary anemometerTakeSummary();

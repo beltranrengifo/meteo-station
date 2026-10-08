@@ -7,6 +7,7 @@
 
 static volatile uint32_t isrTips = 0;
 static volatile uint32_t isrLastAcceptedMs = 0;
+static uint32_t totalTips = 0;
 static portMUX_TYPE isrMux = portMUX_INITIALIZER_UNLOCKED;
 
 static void IRAM_ATTR onRainTip() {
@@ -25,10 +26,18 @@ void rainGaugeBegin() {
   Serial.printf("[rain] gauge ready on GPIO %d\n", PIN_RAIN);
 }
 
+uint32_t rainGaugeTotalTips() {
+  portENTER_CRITICAL(&isrMux);
+  uint32_t pending = isrTips;
+  portEXIT_CRITICAL(&isrMux);
+  return totalTips + pending;
+}
+
 RainSummary rainGaugeTakeSummary() {
   portENTER_CRITICAL(&isrMux);
   uint32_t tips = isrTips;
   isrTips = 0;
   portEXIT_CRITICAL(&isrMux);
+  totalTips += tips;
   return {tips, rainMmFromTips(tips, RAIN_MM_PER_TIP)};
 }

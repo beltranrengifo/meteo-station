@@ -33,6 +33,8 @@ static void storeSample() {
   }
 }
 
+VaneSample windVaneSampleNow() { return takeSample(); }
+
 void windVaneBegin() {
   for (int i = 0; i < VANE_POSITION_COUNT; i++) {
     adcTable[i] = VANE_POSITIONS[i].adc;

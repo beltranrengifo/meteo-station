@@ -22,6 +22,7 @@ constexpr uint32_t READING_INTERVAL_MS = 60UL * 1000UL;  // one reading per minu
 constexpr uint32_t GUST_WINDOW_S = 3;                    // gust = max of 3 s averages
 constexpr uint32_t VANE_SAMPLE_INTERVAL_MS = 5000;       // sample the vane every few seconds
 constexpr int VANE_ADC_SAMPLES = 20;                     // ADC reads averaged per vane sample
+constexpr int VANE_DISCONNECTED_ADC = 80;                // below this the vane is not connected (W, the lowest, is 170)
 
 // ---- Debounce (ms) ----
 constexpr uint32_t ANEMOMETER_DEBOUNCE_MS = 5;  // ~62 pulses/s at 150 km/h; reed bounce is 0.5-1 ms

@@ -10,6 +10,9 @@ struct RainSummary {
 // Pin and interrupt setup. Tips are counted in the background from here on.
 void rainGaugeBegin();
 
+// Tips since boot (for the self-check).
+uint32_t rainGaugeTotalTips();
+
 // Tips and millimetres since the previous call, then starts a new period.
 // Always the rain of the period, never a running total, so a reboot cannot corrupt totals.
 RainSummary rainGaugeTakeSummary();

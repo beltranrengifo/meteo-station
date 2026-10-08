@@ -15,6 +15,7 @@ static portMUX_TYPE isrMux = portMUX_INITIALIZER_UNLOCKED;
 static uint16_t pulsesPerSecond[MAX_SECONDS];
 static int secondCount = 0;
 static uint32_t nextSecondMs = 0;
+static uint32_t totalPulses = 0;
 
 static void IRAM_ATTR onAnemometerPulse() {
   uint32_t now = millis();
@@ -48,6 +49,7 @@ void anemometerTick() {
   }
   nextSecondMs += 1000;
   uint32_t pulses = takeIsrPulses();
+  totalPulses += pulses;
   if (pulses > UINT16_MAX) {
     pulses = UINT16_MAX;
   }
@@ -59,6 +61,8 @@ void anemometerTick() {
     pulsesPerSecond[MAX_SECONDS - 1] = last > UINT16_MAX ? UINT16_MAX : last;
   }
 }
+
+uint32_t anemometerTotalPulses() { return totalPulses; }
 
 WindSummary anemometerTakeSummary() {
   WindSummary summary = {0, secondCount, 0.0f, 0.0f};

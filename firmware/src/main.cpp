@@ -2,6 +2,7 @@
 #include <reading.h>
 
 #include "config.h"
+#include "diagnostics/self_check.h"
 #include "net/time_sync.h"
 #include "net/wifi_connection.h"
 #include "sensors/anemometer.h"
@@ -59,6 +60,9 @@ void setup() {
   anemometerBegin();
   rainGaugeBegin();
   windVaneBegin();
+
+  selfCheckPrint();
+  Serial.println("Type 's' for a sensor self-check.");
 }
 
 void loop() {
@@ -66,6 +70,7 @@ void loop() {
   timeLoop();
   anemometerTick();
   windVaneTick();
+  selfCheckPollSerial();
 
   // LED: solid when connected, blinking while not.
   bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;

@@ -19,6 +19,9 @@ void windVaneBegin();
 // Call from loop(): takes a sample every VANE_SAMPLE_INTERVAL_MS.
 void windVaneTick();
 
+// Reads the vane right now without touching the current period (for the self-check).
+VaneSample windVaneSampleNow();
+
 // Circular mean of the samples since the previous call, then starts a new period.
 // Takes one sample on the spot if the period has none.
 VaneSummary windVaneTakeSummary();
