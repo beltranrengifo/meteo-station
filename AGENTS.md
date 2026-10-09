@@ -27,6 +27,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 ### Testing policy (backend)
 - Pure logic of Edge Functions (validation, parsing) lives in its own module next to `index.ts` and is tested with `deno test` (agents may run it: it starts no server).
 - SQL migrations are validated when the user runs `supabase db push`; agents do not start a local Supabase.
+- After deleting or editing rows in `public.readings`, run `select public.refresh_aggregates_rebuild();`: the incremental refresh only sees new inserts.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
 - Work in small steps; short answers, one step at a time. No long explanations or several steps at once unless asked.
 - The maintainer comes from frontend (React/TypeScript) and is new to electronics and ESP32: explain hardware concepts briefly when they come up.
