@@ -43,6 +43,9 @@ void wifiBegin() {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
+  // Modem sleep is on by default. Some routers handle it badly, and the station runs on mains
+  // power, so keep the radio always on.
+  WiFi.setSleep(false);
   WiFi.onEvent(onWifiEvent);
   Serial.printf("[wifi] connecting to \"%s\"\n", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);

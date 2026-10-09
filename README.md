@@ -67,6 +67,13 @@ pio device monitor                               # serial output at 115200 baud
 pio test -e native                               # unit tests on your computer, no board needed
 ```
 
+For long bench runs, save a timestamped log to `firmware/logs/` (git-ignored) and keep the Mac awake:
+
+```sh
+caffeinate -i                                    # in another terminal; Ctrl+C to stop
+pio device monitor -f time -f log2file
+```
+
 Type `s` in the serial monitor for a sensor self-check.
 
 Each minute the station prints one reading:

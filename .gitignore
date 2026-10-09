@@ -10,6 +10,8 @@
 firmware/.pio/
 firmware/.vscode/
 firmware/include/secrets.h
+# Serial monitor logs (pio device monitor -f log2file): they show the WiFi SSID
+firmware/logs/
 
 # Secrets and local tool state (Supabase, Vercel)
 .env*
