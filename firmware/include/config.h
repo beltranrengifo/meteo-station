@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ---- Device ----
-#define DEVICE_ID "meteo-station-1"
+#define DEVICE_ID "meteo-station-bench"
 #define FW_VERSION "0.1.0"
 
 // ---- Pins (validated on the bench) ----
@@ -23,6 +23,12 @@ constexpr uint32_t GUST_WINDOW_S = 3;                    // gust = max of 3 s av
 constexpr uint32_t VANE_SAMPLE_INTERVAL_MS = 5000;       // sample the vane every few seconds
 constexpr int VANE_ADC_SAMPLES = 20;                     // ADC reads averaged per vane sample
 constexpr int VANE_DISCONNECTED_ADC = 80;                // below this the vane is not connected (W, the lowest, is 170)
+
+// ---- Upload ----
+constexpr int BUFFER_CAPACITY = 1440;           // readings kept in RAM while offline (24 h)
+constexpr int UPLOAD_BATCH_MAX = 30;            // readings per POST (~8 KB of JSON)
+constexpr uint32_t HTTP_TIMEOUT_MS = 10000;
+constexpr uint32_t WATCHDOG_TIMEOUT_S = 60;     // reboot if loop() hangs this long
 
 // ---- Debounce (ms) ----
 constexpr uint32_t ANEMOMETER_DEBOUNCE_MS = 5;  // ~62 pulses/s at 150 km/h; reed bounce is 0.5-1 ms

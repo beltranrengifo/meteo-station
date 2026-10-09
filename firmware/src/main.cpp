@@ -1,9 +1,11 @@
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 #include <reading.h>
 
 #include "config.h"
 #include "diagnostics/self_check.h"
 #include "net/time_sync.h"
+#include "net/uploader.h"
 #include "net/wifi_connection.h"
 #include "sensors/anemometer.h"
 #include "sensors/bme280_sensor.h"
@@ -46,12 +48,17 @@ static void emitReading(time_t ts) {
     return;
   }
   Serial.printf("[reading] %s\n", json);
+  uploaderEnqueue(reading);
 }
 
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.printf("\n%s fw %s\n", DEVICE_ID, FW_VERSION);
+
+  // Reboots the board if loop() stops running for WATCHDOG_TIMEOUT_S (a hang, never a slow upload).
+  esp_task_wdt_init(WATCHDOG_TIMEOUT_S, true);
+  esp_task_wdt_add(nullptr);
 
   pinMode(PIN_STATUS_LED, OUTPUT);
   wifiBegin();
@@ -60,17 +67,19 @@ void setup() {
   anemometerBegin();
   rainGaugeBegin();
   windVaneBegin();
+  uploaderBegin();
 
   selfCheckPrint();
   Serial.println("Type 's' for a sensor self-check.");
 }
 
 void loop() {
+  esp_task_wdt_reset();
   wifiLoop();
   timeLoop();
-  anemometerTick();
   windVaneTick();
   selfCheckPollSerial();
+  uploaderLoop();
 
   // LED: solid when connected, blinking while not.
   bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;

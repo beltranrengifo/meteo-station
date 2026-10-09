@@ -51,3 +51,11 @@
 - Observed values: not recorded per position in this run (calibration table from the earlier bench test still valid).
 - Problems and fix: none.
 - config.h changes: none.
+
+## 2026-10-08 — Test: upload to Supabase (buffer, batches, backoff)
+- Goal: send each reading to the ingest function over HTTPS, keep it in RAM when the network fails, and resend in batches.
+- Setup: USB power, on the bench, DEVICE_ID `meteo-station-bench`. Ran from 17:02 to 22:03 (Madrid time).
+- Result: OK. 305 readings stored in Supabase, none lost while the board was powered. From 20:15 the home internet failed repeatedly (DNS Failed, start_ssl_client -1, outages of up to 17 min). The board retried at 10, 20 and 40 s and then sent everything pending in one batch (up to 17 readings).
+- Problems and fix: around 21:00 the whole home WiFi failed (router Sagemcom F@st 5366S) and came back when the board was unplugged. Cause not confirmed; tracked in meteo-dg5. Added `WiFi.setSleep(false)`. Seven rain tips with nobody touching the gauge; tracked as a separate bug. The one reading still in RAM was lost when unplugged (expected until LittleFS).
+- Anemometer after moving per-second counting to `esp_timer`: gust reasonable when spun by hand. Native unit tests green (test_upload included).
+- config.h changes: upload constants (BUFFER_CAPACITY, UPLOAD_BATCH_MAX, HTTP_TIMEOUT_MS, WATCHDOG_TIMEOUT_S).

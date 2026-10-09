@@ -9,11 +9,9 @@ struct WindSummary {
   float gustMs;
 };
 
-// Pin and interrupt setup. Pulses are counted in the background from here on.
+// Pin, interrupt and 1 s timer setup. Pulses are counted and binned per second in the
+// background from here on, independent of loop(), so a slow upload cannot distort the gust.
 void anemometerBegin();
-
-// Call from loop(): stores the pulses of each completed second (needed for the gust).
-void anemometerTick();
 
 // Pulses since boot (for the self-check).
 uint32_t anemometerTotalPulses();
