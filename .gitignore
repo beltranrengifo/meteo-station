@@ -18,3 +18,7 @@ firmware/logs/
 !.env.example
 **/supabase/.temp/
 .vercel/
+
+# Frontend (Vite + Vercel functions)
+node_modules/
+frontend/dist/

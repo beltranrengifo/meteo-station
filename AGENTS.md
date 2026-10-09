@@ -19,6 +19,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - All code in English: identifiers, strings, serial messages, comments.
 - Docs may be in Spanish. Say "flashear", not "subir".
 - Hardware tests are logged in `docs/hardware-log.md`.
+- TypeScript: named exports only, no `export default`. Then a name is the same in every import, and it is easy to find where a function comes from. The only exception is a config file whose tool requires a default export, such as `vite.config.ts`.
 
 ### Testing policy (firmware)
 - Pure logic (vane mapping, circular mean, gust, rain mm, debounce decision, time/JSON formatting) lives in `firmware/lib/` with no Arduino dependency and is unit-tested with Unity in the `native` env (`pio test -e native`, runs on the Mac, no board). Write the test first.
@@ -29,6 +30,10 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - Pure logic of Edge Functions (validation, parsing) lives in its own module next to `index.ts` and is tested with `deno test` (agents may run it: it starts no server).
 - SQL migrations are validated when the user runs `supabase db push`; agents do not start a local Supabase.
 - After deleting or editing rows in `public.readings`, run `select public.refresh_aggregates_rebuild();`: the incremental refresh only sees new inserts.
+### Testing policy (frontend and read API)
+- Pure logic of the read API (params, Madrid days, cache times) lives in `frontend/server/` and is tested with Vitest. Agents may run `pnpm test` and `pnpm typecheck` in `frontend/`; neither starts a server. `pnpm dev` and `vercel dev` are servers, so the user starts them.
+- After every migration, regenerate `frontend/server/database.types.ts` with `pnpm gen:types` in `frontend/`. Agents may run it, because it only reads the schema. Then run `pnpm typecheck`.
+- `frontend/server/` uses the Supabase secret key: never import it from `frontend/src/` (browser code). Server env vars never use the `VITE_` prefix.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
 - Work in small steps; short answers, one step at a time. No long explanations or several steps at once unless asked.
 - The maintainer comes from frontend (React/TypeScript) and is new to electronics and ESP32: explain hardware concepts briefly when they come up.

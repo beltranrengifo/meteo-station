@@ -1,0 +1,12 @@
+{
+  "name": "meteo-station",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -C frontend dev",
+    "dev:api": "vercel dev --cwd frontend",
+    "build": "pnpm -C frontend build",
+    "test": "pnpm -C frontend test",
+    "typecheck": "pnpm -C frontend typecheck",
+    "gen:types": "pnpm -C frontend gen:types"
+  }
+}

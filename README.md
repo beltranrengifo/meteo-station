@@ -2,7 +2,7 @@
 
 A home weather station built on an ESP32: temperature, humidity, pressure, wind speed, gust, wind direction and rain, sent once a minute to Supabase and shown on a web dashboard.
 
-Status: the firmware reads all sensors and prints a JSON reading every minute over serial. The backend (Supabase), the cached read API and the web dashboard come next.
+Status: the firmware reads all sensors and uploads one reading a minute to Supabase, which keeps hourly and daily aggregates. The cached read API is in place; the web dashboard comes next.
 
 ## Hardware
 
@@ -50,10 +50,12 @@ firmware/   PlatformIO project (Arduino framework, esp32dev; envs bench, station
   src/        main loop, sensors/, net/ (WiFi, NTP), diagnostics/
   lib/        pure logic with no Arduino dependency (wind, rain, vane, debounce, JSON reading)
   test/       Unity unit tests for lib/, run on the computer
+backend/    Supabase: migrations (readings, hourly/daily aggregates, pg_cron) and the ingest Edge Function
+frontend/   Vite + React + TypeScript dashboard, deployed on Vercel
+  api/        read API: /api/now, /api/day?date=, /api/month?month=, /api/daily (CDN-cached)
+  server/     server-only helpers for api/ (Supabase secret key, param validation), Vitest tests
 docs/       design spec, bench-test log, assembly drawing (Spanish)
 ```
-
-Planned: `backend/` (Supabase migrations and ingest Edge Function) and `frontend/` (React + TypeScript dashboard with cached `/api` routes on Vercel).
 
 ## Firmware
 
@@ -82,6 +84,21 @@ Each minute the station prints one reading:
 ```json
 {"device_id":"meteo-station-1","ts":"2026-10-20T10:15:00Z","temp_c":18.4,"humidity_pct":62.1,"pressure_hpa":1016.3,"wind_avg_ms":2.10,"wind_gust_ms":4.60,"wind_dir_deg":225,"rain_mm":0.2794,"rssi":-67,"uptime_s":86400,"fw":"0.1.0"}
 ```
+
+## Frontend and read API
+
+Requires Node 24 and pnpm. From the repository root:
+
+```sh
+pnpm -C frontend install   # once
+pnpm dev                   # dashboard only (Vite); /api calls fail without dev:api
+pnpm dev:api               # dashboard + /api functions (vercel dev); needs the Vercel project linked
+pnpm test                  # unit tests (Vitest)
+pnpm typecheck             # TypeScript check
+pnpm gen:types             # regenerate database types after a Supabase migration
+```
+
+Server-side env vars are listed in [`frontend/.env.example`](frontend/.env.example).
 
 ## License
 
