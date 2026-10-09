@@ -9,6 +9,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - **Never start servers** (dev servers, Supabase local, etc.). The user starts them by hand.
 - **Never run PlatformIO** (`pio run`, `pio run -t upload`, `pio device monitor`, ...). The user builds, flashes and reviews on the board. Agents write code and say which command to run. This rule stays until the user lifts it explicitly.
 - **Never commit or push on your own initiative.** The user commits so they can review the code; they say when to commit and when to push. When a task is done, ask whether to commit. This overrides the beads "session completion" block below.
+- **No AI attribution** in commits, PRs or files: no `Co-Authored-By: Claude`, no "Generated with" lines. The project and every commit are the user's.
 - Never commit secrets. `firmware/include/secrets.h` is git-ignored; only `secrets.example.h` is tracked. Never put a Supabase service role key in firmware.
 - Do not change pin assignments unless asked; if changed, update code and docs together.
 - Do not invent facts about hardware or APIs: search, or say it is unknown.
