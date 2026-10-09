@@ -3,6 +3,7 @@
 #include <reading.h>
 
 #include "config.h"
+#include "diagnostics/live_log.h"
 #include "diagnostics/self_check.h"
 #include "net/time_sync.h"
 #include "net/uploader.h"
@@ -79,6 +80,7 @@ void loop() {
   timeLoop();
   windVaneTick();
   selfCheckPollSerial();
+  liveLogLoop();  // bench env only, no-op on the station
   uploaderLoop();
 
   // LED: solid when connected, blinking while not.

@@ -17,7 +17,9 @@
                 "ARDUINO=10812",
                 "ARDUINO_ARCH_ESP32",
                 "ESP32",
-                "IRAM_ATTR="
+                "IRAM_ATTR=",
+                "DEVICE_ID=\"meteo-station-bench\"",
+                "LIVE_LOG_INTERVAL_MS=10000"
             ],
             "compilerPath": "${env:HOME}/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-g++",
             "cStandard": "gnu11",

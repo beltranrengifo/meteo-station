@@ -3,7 +3,10 @@
 #include <Arduino.h>
 
 // ---- Device ----
-#define DEVICE_ID "meteo-station-bench"
+// DEVICE_ID comes from the PlatformIO env (bench or station), see platformio.ini.
+#ifndef DEVICE_ID
+#error "DEVICE_ID not set: build with -e bench or -e station"
+#endif
 #define FW_VERSION "0.1.0"
 
 // ---- Pins (validated on the bench) ----
