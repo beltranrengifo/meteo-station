@@ -48,7 +48,7 @@ Pins, timing and calibration are in [`firmware/include/config.h`](firmware/inclu
 firmware/   PlatformIO project (Arduino framework, esp32dev; envs bench, station, native)
   include/    config.h (pins, timing, calibration), secrets.example.h
   src/        main loop, sensors/, net/ (WiFi, NTP), diagnostics/
-  lib/        pure logic with no Arduino dependency (wind, rain, vane, debounce, JSON reading)
+  lib/        pure logic with no Arduino dependency (wind, rain, vane, debounce, pulse filter, JSON reading)
   test/       Unity unit tests for lib/, run on the computer
 backend/    Supabase: migrations (readings, hourly/daily aggregates, pg_cron) and the ingest Edge Function
 frontend/   Vite + React + TypeScript dashboard, deployed on Vercel

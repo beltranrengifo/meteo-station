@@ -22,7 +22,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - TypeScript: named exports only, no `export default`. Then a name is the same in every import, and it is easy to find where a function comes from. The only exception is a config file whose tool requires a default export, such as `vite.config.ts`.
 
 ### Testing policy (firmware)
-- Pure logic (vane mapping, circular mean, gust, rain mm, debounce decision, time/JSON formatting) lives in `firmware/lib/` with no Arduino dependency and is unit-tested with Unity in the `native` env (`pio test -e native`, runs on the Mac, no board). Write the test first.
+- Pure logic (vane mapping, circular mean, gust, rain mm, debounce decision, pulse-width filter, time/JSON formatting) lives in `firmware/lib/` with no Arduino dependency and is unit-tested with Unity in the `native` env (`pio test -e native`, runs on the Mac, no board). Write the test first.
 - Thin wrappers over the ESP32 SDK or sensor libraries (WiFi, NTP, BME280) are not unit-tested: they are validated on the board and logged in `docs/hardware-log.md`.
 - The user runs all `pio` commands, including tests.
 

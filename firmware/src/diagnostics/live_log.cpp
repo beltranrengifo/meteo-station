@@ -33,13 +33,18 @@ void liveLogLoop() {
 
   Bme280Reading bme = bme280Read();
   VaneSample vane = windVaneSampleNow();
+  RainDiagnostics rain = rainGaugeTakeDiagnostics();
 
+  // closures = reed closures in these 10 s; longest = the longest of them.
+  // noise = closures too short to be a tip, since boot. pin 1 = reed open (rest), pin 0 = closed.
   Serial.printf("[live] %.1f C  %.1f %%  %.1f hPa | wind %.2f m/s (%u pulses) | vane %s %.0f deg (adc %d)"
-                " | rain +%u tips (total %u) | rssi %d\n",
+                " | rain +%u tips (total %u, %u closures, longest %u us, noise %u, pin %d) | rssi %d\n",
                 bme.tempC, bme.humidityPct, bme.pressureHpa,
                 windSpeedMs(newPulses, seconds, WIND_MS_PER_HZ), (unsigned)newPulses,
                 VANE_POSITIONS[vane.index].name, vane.degrees, vane.adc,
                 (unsigned)newTips, (unsigned)tips,
+                (unsigned)rain.lows, (unsigned)rain.longestLowUs, (unsigned)rain.tooShort,
+                rain.pinLow ? 0 : 1,
                 wifiIsConnected() ? wifiRssi() : 0);
 }
 

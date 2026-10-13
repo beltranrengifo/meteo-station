@@ -7,13 +7,13 @@
 #ifndef DEVICE_ID
 #error "DEVICE_ID not set: build with -e bench or -e station"
 #endif
-#define FW_VERSION "0.1.0"
+#define FW_VERSION "0.1.2"
 
 // ---- Pins (validated on the bench) ----
 constexpr int PIN_I2C_SDA = 21;
 constexpr int PIN_I2C_SCL = 22;
 constexpr int PIN_ANEMOMETER = 32;  // external 10k pull-up to 3V3, FALLING interrupt
-constexpr int PIN_RAIN = 33;        // external 10k pull-up to 3V3, FALLING interrupt
+constexpr int PIN_RAIN = 33;        // external 10k pull-up to 3V3, CHANGE interrupt (pulse-width filter)
 constexpr int PIN_VANE = 34;        // ADC1, 10k divider to GND
 constexpr int PIN_STATUS_LED = 2;   // onboard blue LED (LED_BUILTIN is not defined)
 
@@ -36,6 +36,10 @@ constexpr uint32_t WATCHDOG_TIMEOUT_S = 60;     // reboot if loop() hangs this l
 // ---- Debounce (ms) ----
 constexpr uint32_t ANEMOMETER_DEBOUNCE_MS = 5;  // ~62 pulses/s at 150 km/h; reed bounce is 0.5-1 ms
 constexpr uint32_t RAIN_DEBOUNCE_MS = 200;      // spec value; a tip every 10 s at 100 mm/h, so a long filter is safe
+// Shorter closures are noise, not tips. 10 ms rejected real hand tips (two closures under
+// 1 ms each), so 0 for now: every closure counts, as with the plain debounce. Set it from
+// the "longest" times the bench live log shows for hand tips and for phantom tips.
+constexpr uint32_t RAIN_MIN_LOW_US = 0;
 
 // ---- Calibration ----
 constexpr float RAIN_MM_PER_TIP = 0.2794f;      // SparkFun SEN-15901 datasheet

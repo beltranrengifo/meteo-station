@@ -46,7 +46,7 @@ Los cuatro sensores leen correctamente en la mesa, por separado y juntos (BME280
 | I²C SDA (BME280) | 21 | `Wire.begin(21, 22)` |
 | I²C SCL (BME280) | 22 | |
 | Anemómetro | 32 | Pull-up 10 kΩ a 3V3, `INPUT_PULLUP`, interrupción `FALLING` |
-| Pluviómetro | 33 | Pull-up 10 kΩ a 3V3, `INPUT_PULLUP`, interrupción `FALLING` |
+| Pluviómetro | 33 | Pull-up 10 kΩ a 3V3, `INPUT_PULLUP`, interrupción `CHANGE` (filtro por ancho de pulso) |
 | Veleta | 34 | Hilo a 3V3, hilo a GPIO 34, **10 kΩ de GPIO 34 a GND** (divisor). ADC1 |
 | LED estado | 2 | Opcional |
 
