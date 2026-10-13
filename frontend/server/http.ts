@@ -1,11 +1,11 @@
 // JSON responses for the read API, with the CDN cache time in the headers.
+import type { CachePolicy } from './params.js';
 
-export function json(body: unknown, cacheSeconds: number): Response {
+export function json<T>(body: T, cache: CachePolicy): Response {
   return Response.json(body, {
     headers: {
-      // Browsers always revalidate; the Vercel CDN keeps the response for cacheSeconds and
-      // serves the stale copy for as long again while it fetches a fresh one.
-      'Cache-Control': `public, max-age=0, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+      // Browsers always revalidate; only the Vercel CDN keeps a copy.
+      'Cache-Control': `public, max-age=0, s-maxage=${cache.sMaxAge}, stale-while-revalidate=${cache.staleWhileRevalidate}`,
     },
   });
 }

@@ -1,6 +1,6 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
-import { cacheSeconds, localMidnight, localToday, parseDay, parseMonth, rejectUnexpectedParams } from './params.js';
+import { cachePolicy, localMidnight, localToday, parseDay, parseMonth, rejectUnexpectedParams } from './params.js';
 
 const INSTALL = Temporal.PlainDate.from('2026-10-08');
 // 2026-10-20 10:00 in Madrid (UTC+2).
@@ -65,11 +65,14 @@ describe('parseMonth', () => {
   });
 });
 
-describe('cacheSeconds', () => {
-  it('is short while the data can still change and long once it cannot', () => {
-    expect(cacheSeconds(day('2026-10-20'), NOW)).toBe(60); // today
-    expect(cacheSeconds(day('2026-10-19'), NOW)).toBe(600); // late batches can still arrive
-    expect(cacheSeconds(day('2026-10-13'), NOW)).toBe(600);
-    expect(cacheSeconds(day('2026-10-12'), NOW)).toBe(30 * 24 * 3600); // older than the 7 days ingest accepts
+describe('cachePolicy', () => {
+  it('today expires when the next reading lands, with no stale copy', () => {
+    // NOW is 08:00:00Z: the next reading lands at 08:00:08.
+    expect(cachePolicy(day('2026-10-20'), NOW)).toEqual({ sMaxAge: 8, staleWhileRevalidate: 0 });
+  });
+  it('is short while late batches can still arrive and long once they cannot', () => {
+    expect(cachePolicy(day('2026-10-19'), NOW)).toEqual({ sMaxAge: 600, staleWhileRevalidate: 600 });
+    expect(cachePolicy(day('2026-10-13'), NOW).sMaxAge).toBe(600);
+    expect(cachePolicy(day('2026-10-12'), NOW).sMaxAge).toBe(30 * 24 * 3600); // older than the 7 days ingest accepts
   });
 });

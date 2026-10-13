@@ -1,14 +1,20 @@
 // Pure helpers for the read API: strict query params, Madrid local days and cache times.
 // Strictness matters: any unexpected query string is a 400, so bots cannot bypass the CDN cache.
 import { Temporal } from 'temporal-polyfill';
+import { msUntilNextReading } from '../shared/refresh.js';
 
 export const TIME_ZONE = 'Europe/Madrid';
 
 // The ingest function accepts readings up to 7 days old, so a day can still change until then.
 const LATE_DATA_DAYS = 7;
-const CACHE_TODAY_S = 60;
 const CACHE_RECENT_S = 600;
 const CACHE_CLOSED_S = 30 * 24 * 3600;
+
+// s-maxage and stale-while-revalidate for the Vercel CDN, in seconds.
+export interface CachePolicy {
+  sMaxAge: number;
+  staleWhileRevalidate: number;
+}
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -81,11 +87,14 @@ export function parseMonth(value: string, now: Temporal.Instant, installDay: Tem
 }
 
 // How long the CDN may keep a response whose newest data is on lastDay (a local day).
-export function cacheSeconds(lastDay: Temporal.PlainDate, now: Temporal.Instant): number {
+// Today: until the next reading lands, and never a stale copy, so each minute shows up at once.
+// Older days: long, and a stale copy may be served while a fresh one is fetched.
+export function cachePolicy(lastDay: Temporal.PlainDate, now: Temporal.Instant): CachePolicy {
   const today = localToday(now);
   if (Temporal.PlainDate.compare(lastDay, today) >= 0) {
-    return CACHE_TODAY_S;
+    return { sMaxAge: Math.ceil(msUntilNextReading(now.epochMilliseconds) / 1000), staleWhileRevalidate: 0 };
   }
   const closedBefore = today.subtract({ days: LATE_DATA_DAYS });
-  return Temporal.PlainDate.compare(lastDay, closedBefore) >= 0 ? CACHE_RECENT_S : CACHE_CLOSED_S;
+  const seconds = Temporal.PlainDate.compare(lastDay, closedBefore) >= 0 ? CACHE_RECENT_S : CACHE_CLOSED_S;
+  return { sMaxAge: seconds, staleWhileRevalidate: seconds };
 }

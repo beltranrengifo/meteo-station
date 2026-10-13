@@ -1,8 +1,9 @@
 // GET /api/day?date=YYYY-MM-DD: every one-minute reading of that local (Madrid) day,
 // plus the day's summary.
 import { Temporal } from 'temporal-polyfill';
+import type { DayResponse, ReadingRow } from '../shared/api-types.js';
 import { badRequest, json, serverError } from '../server/http.js';
-import { cacheSeconds, localMidnight, parseDay, rejectUnexpectedParams } from '../server/params.js';
+import { cachePolicy, localMidnight, parseDay, rejectUnexpectedParams } from '../server/params.js';
 import { READING_COLUMNS, fetchAll, station } from '../server/supabase.js';
 
 export async function GET(request: Request): Promise<Response> {
@@ -26,7 +27,8 @@ export async function GET(request: Request): Promise<Response> {
     const [readings, summary] = await Promise.all([
       fetchAll((first, last) =>
         db.from('readings').select(READING_COLUMNS).eq('device_id', deviceId)
-          .gte('ts', from).lt('ts', to).order('ts').range(first, last),
+          .gte('ts', from).lt('ts', to).order('ts').range(first, last)
+          .overrideTypes<ReadingRow[], { merge: false }>(),
       ),
       db.from('readings_daily').select('*').eq('device_id', deviceId).eq('day', day.toString()).maybeSingle(),
     ]);
@@ -34,7 +36,7 @@ export async function GET(request: Request): Promise<Response> {
       throw new Error(summary.error.message);
     }
 
-    return json({ date: day.toString(), summary: summary.data, readings }, cacheSeconds(day, now));
+    return json<DayResponse>({ date: day.toString(), summary: summary.data, readings }, cachePolicy(day, now));
   } catch (error) {
     return serverError(error);
   }

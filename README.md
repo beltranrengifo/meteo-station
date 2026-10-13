@@ -91,14 +91,25 @@ Requires Node 24 and pnpm. From the repository root:
 
 ```sh
 pnpm -C frontend install   # once
-pnpm dev                   # dashboard only (Vite); /api calls fail without dev:api
-pnpm dev:api               # dashboard + /api functions (vercel dev); needs the Vercel project linked
+pnpm dev                   # dashboard (Vite); /api is proxied to the deployed API
+pnpm dev:api               # dashboard + local /api functions (vercel dev); needs vercel link + env pull
 pnpm test                  # unit tests (Vitest)
 pnpm typecheck             # TypeScript check
 pnpm gen:types             # regenerate database types after a Supabase migration
 ```
 
 Server-side env vars are listed in [`frontend/.env.example`](frontend/.env.example).
+
+### Running the API locally (`pnpm dev:api`)
+
+`pnpm dev` runs only Vite, which serves the React app but cannot run the functions in `frontend/api/` (Vercel runs them). It forwards `/api` to the deployed API, which is enough to work on the dashboard. To change or debug `frontend/api/` itself, run the functions on your machine with `vercel dev`. The first time, from the repository root:
+
+```sh
+vercel link --cwd frontend       # tie the folder to the Vercel project (creates frontend/.vercel/, git-ignored)
+vercel env pull --cwd frontend   # download the project's env vars, secret key included, to frontend/.env.local (git-ignored)
+```
+
+Then `pnpm dev:api` serves the dashboard and the local `/api` functions together. Run `vercel env pull` again whenever the env vars change in Vercel.
 
 ## License
 

@@ -1,7 +1,8 @@
 // GET /api/month?month=YYYY-MM: hourly and daily aggregates of that local (Madrid) month.
 import { Temporal } from 'temporal-polyfill';
+import type { MonthResponse } from '../shared/api-types.js';
 import { badRequest, json, serverError } from '../server/http.js';
-import { cacheSeconds, localMidnight, parseMonth, rejectUnexpectedParams } from '../server/params.js';
+import { cachePolicy, localMidnight, parseMonth, rejectUnexpectedParams } from '../server/params.js';
 import { fetchAll, station } from '../server/supabase.js';
 
 export async function GET(request: Request): Promise<Response> {
@@ -36,7 +37,7 @@ export async function GET(request: Request): Promise<Response> {
     ]);
 
     // The month's last day decides how long it can be cached (today if the month is not over).
-    return json({ month: month.toString(), days, hours }, cacheSeconds(last, now));
+    return json<MonthResponse>({ month: month.toString(), days, hours }, cachePolicy(last, now));
   } catch (error) {
     return serverError(error);
   }

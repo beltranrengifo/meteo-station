@@ -16,7 +16,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - Never commit personal location data (address, area, exact coordinates). Station coordinates go in env vars.
 
 ### Conventions
-- All code in English: identifiers, strings, serial messages, comments.
+- All code in English: identifiers, strings, serial messages, comments. Exception: the text users see in the dashboard (`frontend/src/`) is in Spanish.
 - Docs may be in Spanish. Say "flashear", not "subir".
 - Hardware tests are logged in `docs/hardware-log.md`.
 - TypeScript: named exports only, no `export default`. Then a name is the same in every import, and it is easy to find where a function comes from. The only exception is a config file whose tool requires a default export, such as `vite.config.ts`.
@@ -32,7 +32,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - After deleting or editing rows in `public.readings`, run `select public.refresh_aggregates_rebuild();`: the incremental refresh only sees new inserts.
 ### Testing policy (frontend and read API)
 - Pure logic of the read API (params, Madrid days, cache times) lives in `frontend/server/` and is tested with Vitest. Agents may run `pnpm test` and `pnpm typecheck` in `frontend/`; neither starts a server. `pnpm dev` and `vercel dev` are servers, so the user starts them.
-- After every migration, regenerate `frontend/server/database.types.ts` with `pnpm gen:types` in `frontend/`. Agents may run it, because it only reads the schema. Then run `pnpm typecheck`.
+- After every migration, regenerate `frontend/shared/database.types.ts` with `pnpm gen:types` in `frontend/`. Agents may run it, because it only reads the schema. Then run `pnpm typecheck`.
 - `frontend/server/` uses the Supabase secret key: never import it from `frontend/src/` (browser code). Server env vars never use the `VITE_` prefix.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
 - Work in small steps; short answers, one step at a time. No long explanations or several steps at once unless asked.

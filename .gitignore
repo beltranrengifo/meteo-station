@@ -22,3 +22,4 @@ firmware/logs/
 # Frontend (Vite + Vercel functions)
 node_modules/
 frontend/dist/
+.vercel
