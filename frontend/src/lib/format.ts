@@ -35,6 +35,38 @@ export function toMadridWallClockMs(iso: string): number {
     .toZonedDateTime('UTC').epochMilliseconds;
 }
 
+// The instant a wall-clock ms from a chart stands for (inverse of toMadridWallClockMs). In the
+// hour repeated when summer time ends, it takes the first (summer) one. Chart positions come
+// with fractions of a millisecond, which Temporal rejects, so it rounds first.
+export function fromMadridWallClockMs(ms: number): Temporal.Instant {
+  return Temporal.Instant.fromEpochMilliseconds(Math.round(ms))
+    .toZonedDateTimeISO('UTC')
+    .toPlainDateTime()
+    .toZonedDateTime(TIME_ZONE, { disambiguation: 'compatible' })
+    .toInstant();
+}
+
+// The inverse of toMadridWallClockMs, for labels: the Madrid wall-clock time it stands for.
+function wallClock(ms: number): Temporal.PlainDateTime {
+  return Temporal.Instant.fromEpochMilliseconds(ms).toZonedDateTimeISO('UTC').toPlainDateTime();
+}
+
+const wallDayFormat = new Intl.DateTimeFormat('es-ES', { timeZone: 'UTC', weekday: 'short', day: 'numeric' });
+
+// Time axis label for a wall-clock ms: "mar 13" at midnight, "07:00" otherwise.
+export function wallClockAxisLabel(ms: number): string {
+  const time = wallClock(ms);
+  if (time.hour === 0 && time.minute === 0) {
+    return wallDayFormat.format(ms);
+  }
+  return time.toPlainTime().toString({ smallestUnit: 'minute' });
+}
+
+// Tooltip heading for a wall-clock ms: "mar 13, 07:12".
+export function wallClockLabel(ms: number): string {
+  return `${wallDayFormat.format(ms)}, ${wallClock(ms).toPlainTime().toString({ smallestUnit: 'minute' })}`;
+}
+
 // One of the 8 points of the vane, in Spanish (O = oeste).
 export function compassPoint(degrees: number | null): string {
   if (degrees === null) {
@@ -51,11 +83,80 @@ export function isStale(lastTs: string | null, now: Temporal.Instant): boolean {
   return Temporal.Duration.compare(age, { minutes: STALE_AFTER_MINUTES }) > 0;
 }
 
-// Rain since midnight at each minute, from the rain of each minute.
-export function cumulativeRain(perMinute: number[]): number[] {
-  let total = 0;
-  return perMinute.map((mm) => {
-    total = Math.round((total + mm) * 10000) / 10000;
-    return total;
-  });
+const dayFormat = new Intl.DateTimeFormat('es-ES', { timeZone: TIME_ZONE, weekday: 'short', day: 'numeric' });
+const longDateFormat = new Intl.DateTimeFormat('es-ES', { timeZone: TIME_ZONE, weekday: 'long', day: 'numeric', month: 'long' });
+
+// "mar 13": short weekday and day of the month in Madrid.
+export function formatDay(iso: string): string {
+  return dayFormat.format(new Date(iso));
+}
+
+// "martes, 13 de octubre" in Madrid.
+export function formatLongDate(iso: string): string {
+  return longDateFormat.format(new Date(iso));
+}
+
+// "07:12" when it is the same Madrid day as now, otherwise "mar 13, 07:12".
+export function formatWhen(iso: string, now: Temporal.Instant): string {
+  const day = Temporal.Instant.from(iso).toZonedDateTimeISO(TIME_ZONE).toPlainDate();
+  const sameDay = day.equals(now.toZonedDateTimeISO(TIME_ZONE).toPlainDate());
+  return sameDay ? formatTime(iso) : `${formatDay(iso)}, ${formatTime(iso)}`;
+}
+
+// "hace 12 s", "hace 3 min", "hace 2 h".
+export function formatAge(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  if (s < 60) {
+    return `hace ${s} s`;
+  }
+  if (s < 3600) {
+    return `hace ${Math.floor(s / 60)} min`;
+  }
+  return `hace ${Math.floor(s / 3600)} h`;
+}
+
+// CEST in summer time, CET in winter time. From the offset: browsers name zones differently.
+export function timeZoneName(now: Temporal.Instant): string {
+  return now.toZonedDateTimeISO(TIME_ZONE).offset === '+02:00' ? 'CEST' : 'CET';
+}
+
+// Spanish greeting for the Madrid hour: días until 14:00, tardes until 21:00.
+export function greeting(now: Temporal.Instant): string {
+  const hour = now.toZonedDateTimeISO(TIME_ZONE).hour;
+  if (hour >= 6 && hour < 14) {
+    return 'Buenos días';
+  }
+  return hour >= 14 && hour < 21 ? 'Buenas tardes' : 'Buenas noches';
+}
+
+// Date pickers work with the browser's Date in its own zone. To pick Madrid times whatever that
+// zone is, the picker shows a Date whose local fields are the Madrid wall-clock time, and the
+// pick is read back the same way.
+export function toPickerDate(iso: string): Date {
+  const t = Temporal.Instant.from(iso).toZonedDateTimeISO(TIME_ZONE);
+  return new Date(t.year, t.month - 1, t.day, t.hour, t.minute);
+}
+
+// The instant of a picked Madrid wall-clock time, to the minute. A time skipped when summer
+// time starts moves forward an hour; a repeated one when it ends takes the first (summer) one.
+export function fromPickerDate(date: Date): string {
+  return Temporal.PlainDateTime.from({
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+  })
+    .toZonedDateTime(TIME_ZONE, { disambiguation: 'compatible' })
+    .toInstant()
+    .toString();
+}
+
+// "13 oct, 07:00" in Madrid, for the custom range's title.
+const shortDateTimeFormat = new Intl.DateTimeFormat('es-ES', {
+  timeZone: TIME_ZONE, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+});
+
+export function formatShortDateTime(iso: string): string {
+  return shortDateTimeFormat.format(new Date(iso));
 }

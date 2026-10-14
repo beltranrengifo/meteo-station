@@ -97,6 +97,50 @@ export function parseMonth(value: string, now: Temporal.Instant, installDay: Tem
   return { ok: true, value: month };
 }
 
+// Custom ranges (/api/range): at most this long, and sent as one-minute readings up to
+// RANGE_MINUTE_MAX_HOURS, as hourly stats above that. 31 days of hours fit one PostgREST page.
+export const RANGE_MAX_DAYS = 31;
+export const RANGE_MINUTE_MAX_HOURS = 48;
+
+export interface InstantRange {
+  from: Temporal.Instant;
+  to: Temporal.Instant;
+}
+
+// An instant on a whole minute, written exactly as Temporal prints it (2026-10-14T05:00:00Z).
+function parseMinute(value: string): Temporal.Instant | null {
+  const instant = parseExact(value, (v) => Temporal.Instant.from(v));
+  return instant && instant.epochMilliseconds % 60_000 === 0 ? instant : null;
+}
+
+// A custom range from..to. `to` may be in the future (the range then ends now); the range must
+// start after the install day began and last at most RANGE_MAX_DAYS.
+export function parseRange(fromValue: string, toValue: string, now: Temporal.Instant, installDay: Temporal.PlainDate): Parsed<InstantRange> {
+  const from = parseMinute(fromValue);
+  const to = parseMinute(toValue);
+  if (!from || !to) {
+    return { ok: false, error: 'from and to must be whole-minute instants like 2026-10-14T05:00:00Z' };
+  }
+  if (Temporal.Instant.compare(from, to) >= 0) {
+    return { ok: false, error: 'from must be before to' };
+  }
+  if (Temporal.Instant.compare(from, now) >= 0) {
+    return { ok: false, error: 'from is in the future' };
+  }
+  if (Temporal.Instant.compare(from, localMidnight(installDay)) < 0) {
+    return { ok: false, error: `no data before ${installDay}` };
+  }
+  if (Temporal.Duration.compare(from.until(to), { hours: RANGE_MAX_DAYS * 24 }) > 0) {
+    return { ok: false, error: `ranges are at most ${RANGE_MAX_DAYS} days` };
+  }
+  return { ok: true, value: { from, to: Temporal.Instant.compare(to, now) > 0 ? now : to } };
+}
+
+// One-minute readings for short ranges, hourly stats for long ones.
+export function rangeResolution(range: InstantRange): 'minute' | 'hour' {
+  return Temporal.Duration.compare(range.from.until(range.to), { hours: RANGE_MINUTE_MAX_HOURS }) > 0 ? 'hour' : 'minute';
+}
+
 // How long the CDN may keep a response whose newest data is on lastDay (a local day).
 // Today: until the next reading lands, and never a stale copy, so each minute shows up at once.
 // Older days: long, and a stale copy may be served while a fresh one is fetched.

@@ -41,6 +41,12 @@ export interface Last7DaysResponse {
   hours: HourlyRow[];
 }
 
+// GET /api/range?from=&to=: a custom range, from <= ts < to (instants, ISO 8601 UTC; `to` is
+// cut to now). One-minute readings up to 48 hours, hourly stats for longer ranges.
+export type RangeResponse =
+  | { from: string; to: string; resolution: 'minute'; readings: ReadingRow[] }
+  | { from: string; to: string; resolution: 'hour'; hours: HourlyRow[] };
+
 // GET /api/sky: sky and UV for the station from Open-Meteo (model data, not measured here).
 // Open-Meteo data is CC BY 4.0: the dashboard must credit it.
 export interface SkyResponse {

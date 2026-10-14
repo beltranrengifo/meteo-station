@@ -1,7 +1,8 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
 import {
-  cachePolicy, last24hStart, last7DaysStart, localMidnight, localToday, parseDay, parseMonth, rejectUnexpectedParams,
+  cachePolicy, last24hStart, last7DaysStart, localMidnight, localToday, parseDay, parseMonth, parseRange, rangeResolution,
+  rejectUnexpectedParams,
 } from './params.js';
 
 const INSTALL = Temporal.PlainDate.from('2026-10-08');
@@ -87,6 +88,45 @@ describe('parseMonth', () => {
     for (const value of ['2026-1', '2026-13', '202610', '2026-11', '2026-09', '2026-10-01']) {
       expect(parseMonth(value, NOW, INSTALL).ok).toBe(false);
     }
+  });
+});
+
+describe('parseRange', () => {
+  const instant = (value: string) => Temporal.Instant.from(value);
+  it('accepts whole-minute instants and ends the range now at most', () => {
+    expect(parseRange('2026-10-19T22:00:00Z', '2026-10-20T06:30:00Z', NOW, INSTALL)).toEqual({
+      ok: true,
+      value: { from: instant('2026-10-19T22:00:00Z'), to: instant('2026-10-20T06:30:00Z') },
+    });
+    expect(parseRange('2026-10-19T22:00:00Z', '2026-10-21T00:00:00Z', NOW, INSTALL)).toEqual({
+      ok: true,
+      value: { from: instant('2026-10-19T22:00:00Z'), to: NOW },
+    });
+  });
+  it('rejects other spellings, seconds, reversed or future ranges, before install and over 31 days', () => {
+    const bad: [string, string][] = [
+      ['2026-10-19T22:00Z', '2026-10-20T06:00:00Z'], // Temporal prints the seconds
+      ['2026-10-20T00:00:00+02:00', '2026-10-20T06:00:00Z'],
+      ['2026-10-19T22:00:30Z', '2026-10-20T06:00:00Z'],
+      ['2026-10-20T06:00:00Z', '2026-10-20T06:00:00Z'],
+      ['2026-10-20T06:00:00Z', '2026-10-19T22:00:00Z'],
+      ['2026-10-20T08:00:00Z', '2026-10-20T09:00:00Z'], // from is now
+      ['2026-10-07T21:59:00Z', '2026-10-08T06:00:00Z'], // install day starts 2026-10-07T22:00Z
+    ];
+    for (const [from, to] of bad) {
+      expect(parseRange(from, to, NOW, INSTALL).ok).toBe(false);
+    }
+    const later = Temporal.Instant.from('2026-12-01T00:00:00Z');
+    expect(parseRange('2026-10-10T00:00:00Z', '2026-11-10T00:00:00Z', later, INSTALL).ok).toBe(true); // 31 days
+    expect(parseRange('2026-10-10T00:00:00Z', '2026-11-10T00:01:00Z', later, INSTALL).ok).toBe(false);
+  });
+});
+
+describe('rangeResolution', () => {
+  const range = (from: string, to: string) => ({ from: Temporal.Instant.from(from), to: Temporal.Instant.from(to) });
+  it('sends minutes up to 48 hours and hours above', () => {
+    expect(rangeResolution(range('2026-10-18T08:00:00Z', '2026-10-20T08:00:00Z'))).toBe('minute');
+    expect(rangeResolution(range('2026-10-18T08:00:00Z', '2026-10-20T08:01:00Z'))).toBe('hour');
   });
 });
 
