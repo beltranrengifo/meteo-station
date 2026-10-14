@@ -13,7 +13,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - Never commit secrets. `firmware/include/secrets.h` is git-ignored; only `secrets.example.h` is tracked. Never put a Supabase service role key in firmware.
 - Do not change pin assignments unless asked; if changed, update code and docs together.
 - Do not invent facts about hardware or APIs: search, or say it is unknown.
-- Never commit personal location data (address, area, exact coordinates). Station coordinates go in env vars.
+- The town may be public: "Madrid, Las Rozas". Never commit the address or exact coordinates; station coordinates go in env vars.
 
 ### Conventions
 - All code in English: identifiers, strings, serial messages, comments. Exception: the text users see in the dashboard (`frontend/src/`) is in Spanish.
