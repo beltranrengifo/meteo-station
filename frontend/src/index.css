@@ -169,7 +169,6 @@ button { font: inherit; }
 .page-loading .spinner { margin: 0; font-size: .9rem; }
 .skeleton-card { display: flex; flex-direction: column; gap: .55rem; }
 .skeleton { display: block; border-radius: 6px; background: var(--border); }
-.skeleton-eyebrow { width: 30%; height: .6rem; }
 .skeleton-title { width: 45%; height: .9rem; }
 .skeleton-chart { height: 195px; margin-top: .6rem; border-radius: 10px; opacity: .6; }
 @media (prefers-reduced-motion: no-preference) { .skeleton { animation: pulse 1.4s ease-in-out infinite; } }
@@ -178,16 +177,17 @@ button { font: inherit; }
 .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .85rem; margin-top: 1.35rem; }
 .chart-card { min-width: 0; padding: 1.1rem 1.15rem .9rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface-soft); }
 .chart-heading { align-items: center; }
-.chart-heading h3 { margin: .3rem 0 0; font-size: .9rem; }
+.chart-heading h3 { margin: 0; font-size: .9rem; }
 .chart-unit { color: var(--muted); font-size: .72rem; font-weight: 700; }
 .chart-note { margin: .45rem 0 .6rem; color: var(--muted); font-size: .68rem; }
 
-/* Custom range pickers (react-datepicker, recolored with the tokens). Scoped under .custom-range
+/* Custom range picker (react-datepicker, recolored with the tokens). Scoped under .custom-range
    so these win over the picker's own CSS, which loads later with the lazy chunk. */
 .custom-range { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem 1rem; margin-top: 1.1rem; }
 .picker-field { display: flex; flex-direction: column; gap: .3rem; }
 .picker-field > span { color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .picker-input { width: 13.5rem; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--foreground); font: inherit; font-size: .8rem; letter-spacing: 0; text-transform: none; }
+.picker-time { width: 6rem; }
 .picker-input:focus { outline: 2px solid color-mix(in srgb, var(--blue) 45%, transparent); border-color: var(--blue); }
 .custom-range-problem { flex-basis: 100%; margin: 0; color: var(--down); font-size: .75rem; }
 .custom-range .react-datepicker { border-color: var(--border); border-radius: 14px; background: var(--surface); color: var(--foreground); font-family: inherit; box-shadow: 0 12px 28px var(--shadow); overflow: hidden; }

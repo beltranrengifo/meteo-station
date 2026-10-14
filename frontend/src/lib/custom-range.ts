@@ -7,7 +7,42 @@ export const CUSTOM_MAX_DAYS = 31;
 
 export interface CustomRange {
   from: string; // instants, ISO 8601, whole minutes
-  to: string;
+  to: string; // exclusive, as in the API
+}
+
+// The range never ends after the current minute: the API cuts it to now anyway.
+function capToNow(to: Temporal.Instant, now: Temporal.Instant): Temporal.Instant {
+  const end = now.round({ smallestUnit: 'minute', roundingMode: 'ceil' });
+  return Temporal.Instant.compare(to, end) > 0 ? end : to;
+}
+
+// Whole days picked on the calendar: from 00:00 on the first day to the end of the last one
+// (shown as 23:59), or to now when the last one is today.
+export function daysRange(first: Temporal.PlainDate, last: Temporal.PlainDate, now: Temporal.Instant): CustomRange {
+  const from = first.toZonedDateTime(TIME_ZONE).toInstant();
+  const to = capToNow(last.add({ days: 1 }).toZonedDateTime(TIME_ZONE).toInstant(), now);
+  return { from: from.toString(), to: to.toString() };
+}
+
+// The last `days` days up to now, today included: from 00:00 on the first one (never before the
+// install day). It ends at 00:00 tomorrow, which the API cuts to now: the range stays the same
+// all day, so its data is cached and refreshed instead of asked for again each minute.
+export function lastDaysRange(days: number, today: Temporal.PlainDate, installDate: string | undefined): CustomRange {
+  const first = today.subtract({ days: days - 1 }).toZonedDateTime(TIME_ZONE).toInstant();
+  const install = installDate === undefined ? undefined : installStart(installDate);
+  const from = install && Temporal.Instant.compare(install, first) > 0 ? install : first;
+  const to = today.add({ days: 1 }).toZonedDateTime(TIME_ZONE).toInstant();
+  return { from: from.toString(), to: to.toString() };
+}
+
+// The last minute inside the range, which is what the picker and the title show as its end.
+export function lastMinute(range: CustomRange): string {
+  return Temporal.Instant.from(range.to).subtract({ minutes: 1 }).toString();
+}
+
+// The exclusive end for a range whose last minute is `minute` (ISO 8601).
+export function endAfter(minute: string, now: Temporal.Instant): string {
+  return capToNow(Temporal.Instant.from(minute).add({ minutes: 1 }), now).toString();
 }
 
 // The first instant with data: 00:00 in Madrid on the install day (YYYY-MM-DD, from /api/now).

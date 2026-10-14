@@ -27,7 +27,6 @@ export function ChartsLoading({ rangeTitle }: { rangeTitle: string }) {
       <div className="charts-grid" aria-hidden="true">
         {Array.from({ length: 6 }, (_, i) => (
           <article key={i} className="chart-card skeleton-card">
-            <span className="skeleton skeleton-eyebrow" />
             <span className="skeleton skeleton-title" />
             <span className="skeleton skeleton-chart" />
           </article>

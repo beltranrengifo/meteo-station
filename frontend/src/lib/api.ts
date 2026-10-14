@@ -58,13 +58,14 @@ export function useLast7Days(enabled: boolean) {
   });
 }
 
-// A custom range is fixed once picked: no refresh.
-export function useRange(from: string, to: string, enabled: boolean) {
+// A custom range is fixed once picked: no refresh. A range up to now refreshes like the others.
+export function useRange(from: string, to: string, enabled: boolean, refresh = false) {
   const params = new URLSearchParams({ from, to });
   return useQuery({
     queryKey: ['range', from, to],
     queryFn: () => getJson<RangeResponse>(`/api/range?${params}`),
     enabled,
+    refetchInterval: refresh ? untilNextReading : false,
   });
 }
 

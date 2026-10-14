@@ -5,14 +5,14 @@ import type { HourlyRow, ReadingRow } from '../../shared/api-types';
 import { TIME_ZONE, msToKmh, toMadridWallClockMs } from './format';
 import { dewPoint } from './weather';
 
-export type RangeKey = 'last2h' | 'today' | 'last24h' | 'last7days' | 'custom';
+export type RangeKey = 'last2h' | 'last24h' | 'last7days' | 'last30days' | 'custom';
 
 // The custom range's title names its dates (see RangeCharts).
 export const RANGES: { key: RangeKey; button: string; title: string }[] = [
   { key: 'last2h', button: '2 h', title: 'Últimas 2 horas' },
-  { key: 'today', button: 'Hoy', title: 'Hoy desde las 00:00' },
   { key: 'last24h', button: '24 h', title: 'Últimas 24 horas' },
   { key: 'last7days', button: '7 días', title: 'Hoy y los 6 días anteriores' },
+  { key: 'last30days', button: '30 días', title: 'Hoy y los 29 días anteriores' },
   { key: 'custom', button: 'Personalizado', title: 'Periodo personalizado' },
 ];
 

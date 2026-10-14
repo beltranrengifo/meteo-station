@@ -1,13 +1,36 @@
-// "Desde" and "Hasta" pickers for the custom range (react-datepicker), in Madrid time.
-// Loaded lazily by RangeCharts: the picker and date-fns are only downloaded when needed.
+// Custom range picker (react-datepicker), in Madrid time: one calendar for the first and last
+// day, and a start and end time. Loaded lazily by RangeCharts: the picker and date-fns are only
+// downloaded when needed.
 import { es } from 'date-fns/locale/es';
+import { useState } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Temporal } from 'temporal-polyfill';
-import { customRangeProblem, installStart, type CustomRange } from '../lib/custom-range';
+import { customRangeProblem, daysRange, endAfter, installStart, lastMinute, type CustomRange } from '../lib/custom-range';
 import { fromPickerDate, toPickerDate } from '../lib/format';
 
 registerLocale('es', es);
+
+// The day of `day` at the time of `time` (picker dates: Madrid wall-clock in local fields).
+function withTime(day: Date, time: Date): Date {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), time.getHours(), time.getMinutes());
+}
+
+function pickedDay(date: Date): Temporal.PlainDate {
+  return Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() });
+}
+
+const TIME_PICKER = {
+  locale: 'es',
+  showTimeSelect: true,
+  showTimeSelectOnly: true,
+  timeIntervals: 15,
+  timeCaption: 'Hora',
+  timeFormat: 'HH:mm',
+  dateFormat: 'HH:mm',
+  className: 'picker-input picker-time',
+  popperPlacement: 'bottom-start' as const,
+};
 
 interface CustomRangePickerProps {
   value: CustomRange;
@@ -17,48 +40,64 @@ interface CustomRangePickerProps {
 
 export function CustomRangePicker({ value, onChange, installDate }: CustomRangePickerProps) {
   const from = toPickerDate(value.from);
-  const to = toPickerDate(value.to);
+  // The end shown is the last minute inside the range: 23:59 for a whole day.
+  const to = toPickerDate(lastMinute(value));
+  // The first day clicked of a new range, until the last one is clicked too.
+  const [firstDay, setFirstDay] = useState<Date | null>(null);
   const now = toPickerDate(Temporal.Now.instant().toString());
+  // Times after now are greyed out: the time list is built on the day already picked.
+  const notFuture = (time: Date) => time.getTime() <= now.getTime();
   // Data starts at 00:00 on the install day, so whole days before it are greyed out.
   const first = installDate === undefined ? undefined : toPickerDate(installStart(installDate).toString());
-  const common = {
-    locale: 'es',
-    showTimeSelect: true,
-    timeIntervals: 15,
-    timeCaption: 'Hora',
-    timeFormat: 'HH:mm',
-    dateFormat: 'd MMM yyyy, HH:mm',
-    maxDate: now,
-    startDate: from,
-    endDate: to,
-    className: 'picker-input',
-    popperPlacement: 'bottom-start' as const,
-  };
   const problem = customRangeProblem(value, installDate);
 
   return (
     <div className="custom-range">
-      {/* Not a <label>: the calendar opens inside it, and clicks there would refocus the input. */}
+      {/* Not <label>s: the calendar opens inside them, and clicks there would refocus the input. */}
       <div className="picker-field">
-        <span id="custom-from-label">Desde</span>
+        <span id="custom-days-label">Días</span>
         <DatePicker
-          {...common}
-          ariaLabelledBy="custom-from-label"
-          selectsStart
+          locale="es"
+          selectsRange
+          ariaLabelledBy="custom-days-label"
+          startDate={firstDay ?? from}
+          endDate={firstDay ? null : to}
           minDate={first}
-          selected={from}
-          onChange={(date: Date | null) => date && onChange({ ...value, from: fromPickerDate(date) })}
+          maxDate={now}
+          dateFormat="d MMM yyyy"
+          rangeSeparator=" – "
+          className="picker-input"
+          popperPlacement="bottom-start"
+          onChange={([start, end]) => {
+            if (start && end) {
+              // Whole days: from 00:00 to 23:59, or to now on today.
+              setFirstDay(null);
+              onChange(daysRange(pickedDay(start), pickedDay(end), Temporal.Now.instant()));
+            } else {
+              setFirstDay(start);
+            }
+          }}
+          onCalendarClose={() => setFirstDay(null)}
         />
       </div>
       <div className="picker-field">
-        <span id="custom-to-label">Hasta</span>
+        <span id="custom-from-label">Desde las</span>
         <DatePicker
-          {...common}
+          {...TIME_PICKER}
+          ariaLabelledBy="custom-from-label"
+          filterTime={notFuture}
+          selected={from}
+          onChange={(time: Date | null) => time && onChange({ ...value, from: fromPickerDate(withTime(from, time)) })}
+        />
+      </div>
+      <div className="picker-field">
+        <span id="custom-to-label">Hasta las</span>
+        <DatePicker
+          {...TIME_PICKER}
           ariaLabelledBy="custom-to-label"
-          selectsEnd
-          minDate={from}
+          filterTime={notFuture}
           selected={to}
-          onChange={(date: Date | null) => date && onChange({ ...value, to: fromPickerDate(date) })}
+          onChange={(time: Date | null) => time && onChange({ ...value, to: endAfter(fromPickerDate(withTime(to, time)), Temporal.Now.instant()) })}
         />
       </div>
       {problem && <p role="alert" className="custom-range-problem">{problem}</p>}

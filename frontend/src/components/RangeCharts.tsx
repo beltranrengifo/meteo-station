@@ -12,7 +12,7 @@ import {
 } from '../lib/series';
 import { COLORS, Chart, useCanBrush } from './Chart';
 import { ChartsLoading, Spinner } from './Loading';
-import { selectionToRange, type CustomRange } from '../lib/custom-range';
+import { lastMinute, selectionToRange, type CustomRange } from '../lib/custom-range';
 
 const CustomRangePicker = lazy(() => import('./CustomRangePicker').then((m) => ({ default: m.CustomRangePicker })));
 
@@ -110,21 +110,18 @@ function rainOption(buckets: RainBucket[], unit: RainUnit): EChartsOption {
 }
 
 interface ChartCardProps {
-  eyebrow: string;
   title: string;
   unit: string;
   note: string;
   children: ReactNode;
 }
 
-function ChartCard({ eyebrow, title, unit, note, children }: ChartCardProps) {
+// The range is named once, above the cards.
+function ChartCard({ title, unit, note, children }: ChartCardProps) {
   return (
     <article className="chart-card">
       <div className="chart-heading">
-        <div>
-          <span className="eyebrow">{eyebrow}</span>
-          <h3>{title}</h3>
-        </div>
+        <h3>{title}</h3>
         <span className="chart-unit">{unit}</span>
       </div>
       <p className="chart-note">{note}</p>
@@ -141,11 +138,10 @@ function between(series: RangeSeries, low: (s: Sample) => number | null, high: (
 
 interface ChartsProps {
   series: RangeSeries;
-  rangeTitle: string;
   onSelectRange: (range: CustomRange) => void;
 }
 
-function Charts({ series, rangeTitle, onSelectRange }: ChartsProps) {
+function Charts({ series, onSelectRange }: ChartsProps) {
   const rainUnit = rainUnitFor(series);
   const buckets = useMemo(() => rainBuckets(series, rainUnit), [series, rainUnit]);
   const cards = useMemo(() => {
@@ -226,7 +222,7 @@ function Charts({ series, rangeTitle, onSelectRange }: ChartsProps) {
   return (
     <div className="charts-grid">
       {cards.map((card) => (
-        <ChartCard key={card.title} eyebrow={rangeTitle} title={card.title} unit={card.unit} note={card.note}>
+        <ChartCard key={card.title} title={card.title} unit={card.unit} note={card.note}>
           <Chart option={card.option} onBrush={'axis' in card ? onBarsBrush : onTimeBrush} />
         </ChartCard>
       ))}
@@ -252,9 +248,8 @@ export function RangeCharts({
 }: RangeChartsProps) {
   const canBrush = useCanBrush();
   const current = RANGES.find((r) => r.key === range)!;
-  // The custom range is named by its dates; `series` has `to` cut to now by the API.
-  const shown = series ?? custom;
-  const title = range === 'custom' ? `Del ${formatShortDateTime(shown.from)} al ${formatShortDateTime(shown.to)}` : current.title;
+  // The custom range is named by its first and last minute.
+  const title = range === 'custom' ? `Del ${formatShortDateTime(custom.from)} al ${formatShortDateTime(lastMinute(custom))}` : current.title;
   return (
     <section className="trend-section">
       <div className="section-heading">
@@ -288,7 +283,7 @@ export function RangeCharts({
       {series && series.samples.length > 0 && canBrush && (
         <p className="brush-hint">Arrastra sobre una gráfica para ver ese tramo en detalle.</p>
       )}
-      {series && series.samples.length > 0 && <Charts series={series} rangeTitle={title} onSelectRange={onSelectRange} />}
+      {series && series.samples.length > 0 && <Charts series={series} onSelectRange={onSelectRange} />}
     </section>
   );
 }

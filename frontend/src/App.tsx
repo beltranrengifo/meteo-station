@@ -7,19 +7,26 @@ import { Hero } from './components/Hero';
 import { PageLoading } from './components/Loading';
 import { RangeCharts } from './components/RangeCharts';
 import { useDay, useLast24h, useLast7Days, useNow, useRange, useSky } from './lib/api';
-import { customRangeProblem, type CustomRange } from './lib/custom-range';
+import { customRangeProblem, daysRange, lastDaysRange, type CustomRange } from './lib/custom-range';
 import { TIME_ZONE, madridToday } from './lib/format';
+import type { RangeResponse } from '../shared/api-types';
 import { fromHours, fromReadings, lastHours, sliceSeries, type RangeKey, type RangeSeries } from './lib/series';
+
+function rangeSeries(data: RangeResponse | undefined): RangeSeries | undefined {
+  if (!data) {
+    return undefined;
+  }
+  return data.resolution === 'minute' ? fromReadings(data.readings, data.from, data.to) : fromHours(data.hours, data.from, data.to);
+}
 
 // The custom range starts as yesterday 00:00 to this minute, in Madrid.
 function initialCustomRange(): CustomRange {
-  const now = Temporal.Now.instant().round({ smallestUnit: 'minute', roundingMode: 'floor' });
-  const yesterday = madridToday().subtract({ days: 1 }).toZonedDateTime(TIME_ZONE).toInstant();
-  return { from: yesterday.toString(), to: now.toString() };
+  const today = madridToday();
+  return daysRange(today.subtract({ days: 1 }), today, Temporal.Now.instant());
 }
 
 export function App() {
-  const [range, setRange] = useState<RangeKey>('today');
+  const [range, setRange] = useState<RangeKey>('last24h');
   const [custom, setCustom] = useState(initialCustomRange);
   // A dragged stretch, cut from the data already shown, until its own data arrives.
   const [preview, setPreview] = useState<RangeSeries>();
@@ -34,6 +41,8 @@ export function App() {
     custom.to,
     range === 'custom' && customRangeProblem(custom, installDate) === null,
   );
+  const last30 = lastDaysRange(30, today, installDate);
+  const last30Days = useRange(last30.from, last30.to, range === 'last30days' && installDate !== undefined, true);
   const sky = useSky();
 
   // Today: from 00:00 Madrid to when the data was fetched (/api/day returns no bounds).
@@ -51,13 +60,8 @@ export function App() {
     [last24h.data],
   );
   const last2hSeries = useMemo(() => last24hSeries && lastHours(last24hSeries, 2), [last24hSeries]);
-  const customSeries = useMemo(() => {
-    const data = customQuery.data;
-    if (!data) {
-      return undefined;
-    }
-    return data.resolution === 'minute' ? fromReadings(data.readings, data.from, data.to) : fromHours(data.hours, data.from, data.to);
-  }, [customQuery.data]);
+  const customSeries = useMemo(() => rangeSeries(customQuery.data), [customQuery.data]);
+  const last30DaysSeries = useMemo(() => rangeSeries(last30Days.data), [last30Days.data]);
   const last7DaysSeries = useMemo(
     () => last7Days.data && fromHours(last7Days.data.hours, last7Days.data.from, last7Days.data.to),
     [last7Days.data],
@@ -67,9 +71,9 @@ export function App() {
   const lastTs = reading?.ts ?? null;
   const chart = {
     last2h: { series: last2hSeries, query: last24h },
-    today: { series: todaySeries, query: day },
     last24h: { series: last24hSeries, query: last24h },
     last7days: { series: last7DaysSeries, query: last7Days },
+    last30days: { series: last30DaysSeries, query: last30Days },
     custom: {
       series: customSeries ?? (preview?.from === custom.from && preview.to === custom.to ? preview : undefined),
       query: customQuery,
