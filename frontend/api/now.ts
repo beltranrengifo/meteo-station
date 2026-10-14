@@ -1,4 +1,5 @@
-// GET /api/now: the latest reading and today's summary so far (min/max, rain since midnight).
+// GET /api/now: the latest reading, today's summary so far (min/max, rain since midnight) and
+// the install day, so the dashboard does not offer dates before it.
 // The summary comes from the aggregates, which the database refreshes every 10 minutes.
 import { Temporal } from 'temporal-polyfill';
 import type { NowResponse, ReadingRow } from '../shared/api-types.js';
@@ -13,7 +14,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const { db, deviceId } = station();
+    const { db, deviceId, installDay } = station();
     const now = Temporal.Now.instant();
     const today = localToday(now);
 
@@ -26,7 +27,10 @@ export async function GET(request: Request): Promise<Response> {
       throw new Error((latest.error ?? summary.error)?.message);
     }
 
-    return json<NowResponse>({ reading: latest.data, today: summary.data }, cachePolicy(today, now));
+    return json<NowResponse>(
+      { reading: latest.data, today: summary.data, installDate: installDay.toString() },
+      cachePolicy(today, now),
+    );
   } catch (error) {
     return serverError(error);
   }

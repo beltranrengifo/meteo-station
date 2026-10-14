@@ -28,7 +28,12 @@ export function App() {
   const day = useDay(today, true);
   const last24h = useLast24h();
   const last7Days = useLast7Days(range === 'last7days');
-  const customQuery = useRange(custom.from, custom.to, range === 'custom' && customRangeProblem(custom) === null);
+  const installDate = now.data?.installDate;
+  const customQuery = useRange(
+    custom.from,
+    custom.to,
+    range === 'custom' && customRangeProblem(custom, installDate) === null,
+  );
   const sky = useSky();
 
   // Today: from 00:00 Madrid to when the data was fetched (/api/day returns no bounds).
@@ -95,6 +100,7 @@ export function App() {
           onRangeChange={setRange}
           custom={custom}
           onCustomChange={setCustom}
+          installDate={installDate}
           onSelectRange={(selected) => {
             if (chart.series) {
               setPreview(sliceSeries(chart.series, selected.from, selected.to));

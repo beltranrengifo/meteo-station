@@ -1,5 +1,6 @@
 // The custom chart range and the checks the API also makes (server/params.ts parseRange).
 import { Temporal } from 'temporal-polyfill';
+import { TIME_ZONE } from './format';
 
 // Same limit as the API (server/params.ts RANGE_MAX_DAYS).
 export const CUSTOM_MAX_DAYS = 31;
@@ -9,8 +10,16 @@ export interface CustomRange {
   to: string;
 }
 
-// Problem with a picked range, in Spanish, or null when the API will accept it.
-export function customRangeProblem(range: CustomRange): string | null {
+// The first instant with data: 00:00 in Madrid on the install day (YYYY-MM-DD, from /api/now).
+export function installStart(installDate: string): Temporal.Instant {
+  return Temporal.PlainDate.from(installDate).toZonedDateTime(TIME_ZONE).toInstant();
+}
+
+const installDayFormat = new Intl.DateTimeFormat('es-ES', { timeZone: TIME_ZONE, day: 'numeric', month: 'long' });
+
+// Problem with a picked range, in Spanish, or null when the API will accept it. The install
+// date is unknown until /api/now answers; the API still checks it then.
+export function customRangeProblem(range: CustomRange, installDate: string | undefined): string | null {
   const from = Temporal.Instant.from(range.from);
   const to = Temporal.Instant.from(range.to);
   if (Temporal.Instant.compare(from, to) >= 0) {
@@ -18,6 +27,12 @@ export function customRangeProblem(range: CustomRange): string | null {
   }
   if (Temporal.Instant.compare(from, Temporal.Now.instant()) >= 0) {
     return '"Desde" no puede ser futuro.';
+  }
+  if (installDate !== undefined) {
+    const start = installStart(installDate);
+    if (Temporal.Instant.compare(from, start) < 0) {
+      return `No hay datos antes del ${installDayFormat.format(new Date(start.epochMilliseconds))}.`;
+    }
   }
   if (Temporal.Duration.compare(from.until(to), { hours: CUSTOM_MAX_DAYS * 24 }) > 0) {
     return `El periodo puede durar como mucho ${CUSTOM_MAX_DAYS} días.`;

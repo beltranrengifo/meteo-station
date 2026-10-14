@@ -1,8 +1,27 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
-import { selectionToRange } from './custom-range';
+import { customRangeProblem, installStart, selectionToRange } from './custom-range';
 
 const at = (value: string) => Temporal.Instant.from(value);
+
+describe('installStart', () => {
+  it('is 00:00 in Madrid on the install day', () => {
+    expect(installStart('2026-10-08').toString()).toBe('2026-10-07T22:00:00Z');
+  });
+});
+
+describe('customRangeProblem', () => {
+  it('accepts a range from 00:00 in Madrid on the install day', () => {
+    expect(customRangeProblem({ from: '2026-10-07T22:00:00Z', to: '2026-10-08T22:00:00Z' }, '2026-10-08')).toBeNull();
+  });
+  it('rejects a range starting before the install day, naming the day', () => {
+    expect(customRangeProblem({ from: '2026-10-07T21:59:00Z', to: '2026-10-08T22:00:00Z' }, '2026-10-08'))
+      .toBe('No hay datos antes del 8 de octubre.');
+  });
+  it('leaves the install day to the API while it is unknown', () => {
+    expect(customRangeProblem({ from: '2026-10-01T00:00:00Z', to: '2026-10-02T00:00:00Z' }, undefined)).toBeNull();
+  });
+});
 const BOUNDS = { from: '2026-10-14T06:00:30Z', to: '2026-10-14T08:00:30Z' };
 
 describe('selectionToRange', () => {

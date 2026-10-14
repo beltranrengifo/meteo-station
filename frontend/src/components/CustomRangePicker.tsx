@@ -4,7 +4,7 @@ import { es } from 'date-fns/locale/es';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Temporal } from 'temporal-polyfill';
-import { customRangeProblem, type CustomRange } from '../lib/custom-range';
+import { customRangeProblem, installStart, type CustomRange } from '../lib/custom-range';
 import { fromPickerDate, toPickerDate } from '../lib/format';
 
 registerLocale('es', es);
@@ -12,12 +12,15 @@ registerLocale('es', es);
 interface CustomRangePickerProps {
   value: CustomRange;
   onChange: (range: CustomRange) => void;
+  installDate: string | undefined; // YYYY-MM-DD, from /api/now
 }
 
-export function CustomRangePicker({ value, onChange }: CustomRangePickerProps) {
+export function CustomRangePicker({ value, onChange, installDate }: CustomRangePickerProps) {
   const from = toPickerDate(value.from);
   const to = toPickerDate(value.to);
   const now = toPickerDate(Temporal.Now.instant().toString());
+  // Data starts at 00:00 on the install day, so whole days before it are greyed out.
+  const first = installDate === undefined ? undefined : toPickerDate(installStart(installDate).toString());
   const common = {
     locale: 'es',
     showTimeSelect: true,
@@ -31,7 +34,7 @@ export function CustomRangePicker({ value, onChange }: CustomRangePickerProps) {
     className: 'picker-input',
     popperPlacement: 'bottom-start' as const,
   };
-  const problem = customRangeProblem(value);
+  const problem = customRangeProblem(value, installDate);
 
   return (
     <div className="custom-range">
@@ -42,6 +45,7 @@ export function CustomRangePicker({ value, onChange }: CustomRangePickerProps) {
           {...common}
           ariaLabelledBy="custom-from-label"
           selectsStart
+          minDate={first}
           selected={from}
           onChange={(date: Date | null) => date && onChange({ ...value, from: fromPickerDate(date) })}
         />

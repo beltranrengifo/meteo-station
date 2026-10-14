@@ -17,6 +17,7 @@ export type DailyRow = Tables<'readings_daily'>;
 export interface NowResponse {
   reading: ReadingRow | null;
   today: DailyRow | null;
+  installDate: string; // YYYY-MM-DD: the first day with data; the API rejects anything earlier
 }
 
 // GET /api/day?date=YYYY-MM-DD

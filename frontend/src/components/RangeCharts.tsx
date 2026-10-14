@@ -239,6 +239,7 @@ interface RangeChartsProps {
   onRangeChange: (range: RangeKey) => void;
   custom: CustomRange;
   onCustomChange: (range: CustomRange) => void;
+  installDate: string | undefined; // YYYY-MM-DD, from /api/now
   // A stretch dragged on a chart: becomes the custom range.
   onSelectRange: (range: CustomRange) => void;
   series: RangeSeries | undefined;
@@ -247,7 +248,7 @@ interface RangeChartsProps {
 }
 
 export function RangeCharts({
-  range, onRangeChange, custom, onCustomChange, onSelectRange, series, isPending, isError,
+  range, onRangeChange, custom, onCustomChange, installDate, onSelectRange, series, isPending, isError,
 }: RangeChartsProps) {
   const canBrush = useCanBrush();
   const current = RANGES.find((r) => r.key === range)!;
@@ -277,7 +278,7 @@ export function RangeCharts({
       </div>
       {range === 'custom' && (
         <Suspense fallback={<Spinner label="Cargando el selector de fechas…" />}>
-          <CustomRangePicker value={custom} onChange={onCustomChange} />
+          <CustomRangePicker value={custom} onChange={onCustomChange} installDate={installDate} />
         </Suspense>
       )}
       {isError && <p role="alert" className="chart-status">No se pudieron cargar los datos de este periodo.</p>}
