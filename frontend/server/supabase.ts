@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Temporal } from 'temporal-polyfill';
 import { READING_FIELDS } from '../shared/api-types.js';
 import type { Database } from '../shared/database.types.js';
+import { requireEnv } from './env.js';
 
 // PostgREST returns at most 1000 rows per request on Supabase.
 const PAGE_SIZE = 1000;
@@ -15,14 +16,6 @@ export interface StationConfig {
 }
 
 let cached: StationConfig | null = null;
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`missing env var ${name}`);
-  }
-  return value;
-}
 
 export function station(): StationConfig {
   if (!cached) {

@@ -217,6 +217,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      hourly_stats: {
+        Args: { p_device_id: string; p_from: string; p_to: string }
+        Returns: {
+          device_id: string
+          hour: string
+          humidity_avg: number | null
+          humidity_max: number | null
+          humidity_min: number | null
+          pressure_avg: number | null
+          pressure_max: number | null
+          pressure_min: number | null
+          rain_mm: number | null
+          samples: number
+          temp_avg: number | null
+          temp_max: number | null
+          temp_max_at: string | null
+          temp_min: number | null
+          temp_min_at: string | null
+          wind_avg_ms: number | null
+          wind_dir_deg: number | null
+          wind_gust_max: number | null
+          wind_gust_max_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "readings_hourly"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       refresh_aggregates_incremental: { Args: never; Returns: undefined }
       refresh_aggregates_since: {
         Args: { p_inserted_since: string }

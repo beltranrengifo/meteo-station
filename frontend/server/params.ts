@@ -28,6 +28,17 @@ export function localMidnight(day: Temporal.PlainDate): Temporal.Instant {
   return day.toZonedDateTime(TIME_ZONE).toInstant();
 }
 
+// Start of the "24 h" view: exactly 24 hours before now (it crosses midnight).
+export function last24hStart(now: Temporal.Instant): Temporal.Instant {
+  return now.subtract({ hours: 24 });
+}
+
+// Start of the "7 días" view: 00:00 Madrid time six days before today, so today plus the
+// six whole days before it. Not 168 hours: the view follows local days.
+export function last7DaysStart(now: Temporal.Instant): Temporal.Instant {
+  return localMidnight(localToday(now).subtract({ days: 6 }));
+}
+
 // Null when the URL has exactly the expected params, each once; otherwise the error message.
 export function rejectUnexpectedParams(url: URL, expected: string[]): string | null {
   const keys = [...url.searchParams.keys()];

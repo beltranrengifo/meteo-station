@@ -26,6 +26,32 @@ export interface DayResponse {
   readings: ReadingRow[];
 }
 
+// GET /api/last-24h: readings with from < ts <= to (instants, ISO 8601 UTC).
+export interface Last24hResponse {
+  from: string;
+  to: string;
+  readings: ReadingRow[];
+}
+
+// GET /api/last-7-days: hourly stats with from <= hour < to, computed from the readings
+// on each request, so the current hour is exact (stored aggregates lag up to 10 minutes).
+export interface Last7DaysResponse {
+  from: string;
+  to: string;
+  hours: HourlyRow[];
+}
+
+// GET /api/sky: sky and UV for the station from Open-Meteo (model data, not measured here).
+// Open-Meteo data is CC BY 4.0: the dashboard must credit it.
+export interface SkyResponse {
+  observedAt: string;      // instant the values are for (ISO 8601 UTC), 15-minute steps
+  weatherCode: number;     // WMO weather interpretation code
+  cloudCoverPct: number;
+  isDay: boolean;
+  uvIndex: number;
+  uvIndexMaxToday: number;
+}
+
 // GET /api/month?month=YYYY-MM
 export interface MonthResponse {
   month: string;

@@ -1,6 +1,8 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
-import { cachePolicy, localMidnight, localToday, parseDay, parseMonth, rejectUnexpectedParams } from './params.js';
+import {
+  cachePolicy, last24hStart, last7DaysStart, localMidnight, localToday, parseDay, parseMonth, rejectUnexpectedParams,
+} from './params.js';
 
 const INSTALL = Temporal.PlainDate.from('2026-10-08');
 // 2026-10-20 10:00 in Madrid (UTC+2).
@@ -27,6 +29,29 @@ describe('localMidnight', () => {
     expect(localMidnight(day('2026-03-30')).toString()).toBe('2026-03-29T22:00:00Z');
     expect(localMidnight(day('2026-10-25')).toString()).toBe('2026-10-24T22:00:00Z');
     expect(localMidnight(day('2026-10-26')).toString()).toBe('2026-10-25T23:00:00Z');
+  });
+});
+
+describe('last24hStart', () => {
+  it('is 24 hours of real time, also across the clock change', () => {
+    expect(last24hStart(NOW).toString()).toBe('2026-10-19T08:00:00Z');
+    // 2026-10-25 12:00 Madrid (UTC+1) is 25 wall-clock hours after 2026-10-24 12:00 (UTC+2).
+    expect(last24hStart(Temporal.Instant.from('2026-10-25T11:00:00Z')).toString()).toBe('2026-10-24T11:00:00Z');
+  });
+});
+
+describe('last7DaysStart', () => {
+  it('starts at local midnight six days before today', () => {
+    // Today 2026-10-20: from 2026-10-14 00:00 Madrid (UTC+2).
+    expect(last7DaysStart(NOW).toString()).toBe('2026-10-13T22:00:00Z');
+  });
+  it('uses the Madrid day near midnight', () => {
+    // 2026-10-20 00:30 Madrid is still 2026-10-19 in UTC.
+    expect(last7DaysStart(Temporal.Instant.from('2026-10-19T22:30:00Z')).toString()).toBe('2026-10-13T22:00:00Z');
+  });
+  it('keeps the start in summer time after the clock change', () => {
+    // Today 2026-10-27 (UTC+1): from 2026-10-21 00:00, still UTC+2.
+    expect(last7DaysStart(Temporal.Instant.from('2026-10-27T10:00:00Z')).toString()).toBe('2026-10-20T22:00:00Z');
   });
 });
 
