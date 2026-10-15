@@ -2,8 +2,6 @@
 
 #include <WiFi.h>
 
-#include "secrets.h"
-
 static constexpr uint32_t RECONNECT_AFTER_MS = 30000;
 
 static uint32_t disconnectedSince = 0;
@@ -16,6 +14,8 @@ static const char *disconnectReasonName(uint8_t reason) {
     case WIFI_REASON_BEACON_TIMEOUT: return "beacon timeout";
     case WIFI_REASON_ASSOC_FAIL: return "association failed";
     case WIFI_REASON_HANDSHAKE_TIMEOUT: return "handshake timeout";
+    // What the router answers to a wrong WPA2 password.
+    case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT: return "4-way handshake timeout, wrong password?";
     default: return "other";
   }
 }
@@ -39,16 +39,29 @@ static void onWifiEvent(arduino_event_id_t event, arduino_event_info_t info) {
   }
 }
 
+// Connects to the network saved by the setup portal (the ESP32 WiFi driver keeps it in NVS).
+static void beginSaved() {
+  WiFi.begin();
+}
+
 void wifiBegin() {
-  WiFi.persistent(false);
+  // Keep the default persistent mode: with persistent(false) the driver uses RAM only and
+  // would not see the network saved by the portal. begin() without arguments and
+  // disconnect() never change what is saved.
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   // Modem sleep is on by default. Some routers handle it badly, and the station runs on mains
   // power, so keep the radio always on.
   WiFi.setSleep(false);
   WiFi.onEvent(onWifiEvent);
-  Serial.printf("[wifi] connecting to \"%s\"\n", WIFI_SSID);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.println("[wifi] connecting to the saved network");
+  beginSaved();
+  disconnectedSince = millis();
+}
+
+void wifiRestart() {
+  WiFi.mode(WIFI_STA);
+  beginSaved();
   disconnectedSince = millis();
 }
 
@@ -63,7 +76,7 @@ void wifiLoop() {
   if (millis() - disconnectedSince > RECONNECT_AFTER_MS) {
     Serial.println("[wifi] still down, restarting connection");
     WiFi.disconnect();
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    beginSaved();
     disconnectedSince = millis();
   }
 }

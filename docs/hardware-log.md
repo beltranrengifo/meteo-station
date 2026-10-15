@@ -67,3 +67,19 @@
 - Earlier evidence: the 2026-10-13 serial log showed no WiFi disconnect on the board, only one `start_ssl_client -1` that recovered 10 s later. The board was never the cause; it only changed which device the router handed .128 to.
 - Problems and fix: projector set to DHCP. No firmware change. `WiFi.setSleep(false)` stays (harmless on mains power).
 - config.h changes: none.
+
+## 2026-10-15 — Test: soak after the projector fix (meteo-dg5, meteo-mu1)
+- Goal: confirm the board runs without WiFi errors now that the projector uses DHCP, and watch for phantom rain tips.
+- Setup: bench board on USB (fw 0.1.2), serial log with `pio device monitor -f time -f log2file`. Ran from 12:20 to 15:33 (Madrid time), 3 h 13 min.
+- Result: OK. 170 uploads, all HTTP 200, never a reading pending. No `[wifi]` disconnect, no `start_ssl_client` error, no reboot. Rain: 0 tips, 0 closures, noise 0. Wind: 0 pulses.
+- Log gaps: the log misses about 25 min between 14:07 and 14:35, but Supabase has every minute of that window, so only the Mac's monitor stopped writing.
+- Problems and fix: none.
+- config.h changes: none.
+
+## 2026-10-15 — Test: setup portal and settings in NVS (meteo-no6)
+- Goal: set WiFi, device id and key from the setup portal instead of `secrets.h`, on the new partition table (`min_spiffs.csv`).
+- Setup: bench board on USB, fw 0.2.0 flashed by USB. Portal opened from a Mac on `meteo-setup-XXXX`.
+- Result: OK after one fix. The board opened the portal on its own (not set up), saved `meteo-station-bench` and its key, and after the WiFi password was corrected it uploaded with HTTP 200.
+- Problems and fix: the first save had a mistyped WiFi password (`reason 15`, 4-way handshake timeout). WiFiManager then blocked `loop()` for the core's 60 s connect wait and the 60 s task watchdog rebooted the board. Fix: `setSaveConnectTimeout(PORTAL_SAVE_CONNECT_TIMEOUT_S)` (20 s), and `reason 15` now prints "wrong password?". Reopened the portal with `w` on the serial monitor and left the key empty to keep the saved one.
+- Not tried yet: BOOT button held 3 s, and the portal opening by itself after 10 min without WiFi.
+- config.h changes: `FW_VERSION` 0.2.0, `PIN_SETUP_BUTTON`, `SETUP_BUTTON_HOLD_MS`, `PORTAL_SAVE_CONNECT_TIMEOUT_S`; `DEVICE_ID` build flag removed.

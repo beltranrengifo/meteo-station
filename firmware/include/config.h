@@ -3,11 +3,9 @@
 #include <Arduino.h>
 
 // ---- Device ----
-// DEVICE_ID comes from the PlatformIO env (bench or station), see platformio.ini.
-#ifndef DEVICE_ID
-#error "DEVICE_ID not set: build with -e bench or -e station"
-#endif
-#define FW_VERSION "0.1.2"
+// Device id, key and WiFi are not compiled in: each station keeps its own in NVS, set with the
+// setup portal (src/net/setup_portal.h). The same build runs on every station.
+#define FW_VERSION "0.2.0"
 
 // ---- Pins (validated on the bench) ----
 constexpr int PIN_I2C_SDA = 21;
@@ -16,6 +14,7 @@ constexpr int PIN_ANEMOMETER = 32;  // external 10k pull-up to 3V3, FALLING inte
 constexpr int PIN_RAIN = 33;        // external 10k pull-up to 3V3, CHANGE interrupt (pulse-width filter)
 constexpr int PIN_VANE = 34;        // ADC1, 10k divider to GND
 constexpr int PIN_STATUS_LED = 2;   // onboard blue LED (LED_BUILTIN is not defined)
+constexpr int PIN_SETUP_BUTTON = 0; // onboard BOOT button, low while pressed
 
 // ---- Sensors ----
 constexpr uint8_t BME280_I2C_ADDRESS = 0x77;
@@ -26,6 +25,11 @@ constexpr uint32_t GUST_WINDOW_S = 3;                    // gust = max of 3 s av
 constexpr uint32_t VANE_SAMPLE_INTERVAL_MS = 5000;       // sample the vane every few seconds
 constexpr int VANE_ADC_SAMPLES = 20;                     // ADC reads averaged per vane sample
 constexpr int VANE_DISCONNECTED_ADC = 80;                // below this the vane is not connected (W, the lowest, is 170)
+
+// ---- Setup portal ----
+constexpr uint32_t SETUP_BUTTON_HOLD_MS = 3000;  // hold BOOT this long to open the setup portal
+// Wait for the network typed in the portal. Plus WiFiManager's 2 s delay, well under the watchdog.
+constexpr uint32_t PORTAL_SAVE_CONNECT_TIMEOUT_S = 20;
 
 // ---- Upload ----
 constexpr int BUFFER_CAPACITY = 1440;           // readings kept in RAM while offline (24 h)

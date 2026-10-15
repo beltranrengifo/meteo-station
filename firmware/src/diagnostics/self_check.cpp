@@ -4,6 +4,7 @@
 #include <check_rules.h>
 
 #include "config.h"
+#include "net/setup_portal.h"
 #include "net/time_sync.h"
 #include "net/wifi_connection.h"
 #include "sensors/anemometer.h"
@@ -69,6 +70,8 @@ void selfCheckPollSerial() {
     char c = Serial.read();
     if (c == 's' || c == 'S') {
       selfCheckPrint();
+    } else if (c == 'w' || c == 'W') {
+      setupPortalAsk();
     }
   }
 }

@@ -7,6 +7,7 @@
 #include <upload_policy.h>
 
 #include "config.h"
+#include "net/station_settings.h"
 #include "net/wifi_connection.h"
 #include "root_ca.h"
 #include "secrets.h"
@@ -60,7 +61,7 @@ static int postBatch(const char *json, int length) {
     return -1;
   }
   http.addHeader("content-type", "application/json");
-  http.addHeader("x-device-key", DEVICE_KEY);
+  http.addHeader("x-device-key", stationDeviceKey());
   int code = http.POST((uint8_t *)json, length);
   if (code > 0 && code != 200) {
     Serial.printf("[upload] response: %s\n", http.getString().c_str());

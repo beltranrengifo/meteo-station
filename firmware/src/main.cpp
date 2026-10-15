@@ -5,6 +5,8 @@
 #include "config.h"
 #include "diagnostics/live_log.h"
 #include "diagnostics/self_check.h"
+#include "net/setup_portal.h"
+#include "net/station_settings.h"
 #include "net/time_sync.h"
 #include "net/uploader.h"
 #include "net/wifi_connection.h"
@@ -30,7 +32,7 @@ static void emitReading(time_t ts) {
   VaneSummary vane = windVaneTakeSummary();
 
   StationReading reading;
-  reading.deviceId = DEVICE_ID;
+  reading.deviceId = stationDeviceId();
   reading.ts = ts;
   reading.tempC = bme.tempC;
   reading.humidityPct = bme.humidityPct;
@@ -49,20 +51,25 @@ static void emitReading(time_t ts) {
     return;
   }
   Serial.printf("[reading] %s\n", json);
-  uploaderEnqueue(reading);
+  // Without a device id and key the server would reject it: kept only once the station is set up.
+  if (stationIsSetUp()) {
+    uploaderEnqueue(reading);
+  }
 }
 
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.printf("\n%s fw %s\n", DEVICE_ID, FW_VERSION);
+  Serial.printf("\nmeteo station fw %s\n", FW_VERSION);
 
   // Reboots the board if loop() stops running for WATCHDOG_TIMEOUT_S (a hang, never a slow upload).
   esp_task_wdt_init(WATCHDOG_TIMEOUT_S, true);
   esp_task_wdt_add(nullptr);
 
   pinMode(PIN_STATUS_LED, OUTPUT);
+  stationSettingsBegin();
   wifiBegin();
+  setupPortalBegin();
   timeBegin();
   bme280Begin();
   anemometerBegin();
@@ -71,12 +78,16 @@ void setup() {
   uploaderBegin();
 
   selfCheckPrint();
-  Serial.println("Type 's' for a sensor self-check.");
+  Serial.println("Type 's' for a sensor self-check, 'w' to open the setup portal.");
 }
 
 void loop() {
   esp_task_wdt_reset();
-  wifiLoop();
+  // The portal makes its own connection attempts; ours would fight them.
+  if (!setupPortalIsOpen()) {
+    wifiLoop();
+  }
+  setupPortalLoop();
   timeLoop();
   windVaneTick();
   selfCheckPollSerial();

@@ -63,9 +63,9 @@ Requires [PlatformIO Core](https://docs.platformio.org/en/latest/core/installati
 
 ```sh
 cd firmware
-cp include/secrets.example.h include/secrets.h   # then fill in your WiFi SSID and password
-pio run -t upload                                # build and flash the bench board (meteo-station-bench)
-pio run -e station -t upload                     # build and flash the real station (meteo-station-1)
+cp include/secrets.example.h include/secrets.h   # then fill in the ingest function URL
+pio run -t upload                                # build and flash the bench board (live sensor log)
+pio run -e station -t upload                     # build and flash a station
 pio device monitor                               # serial output at 115200 baud
 pio test -e native                               # unit tests on your computer, no board needed
 ```
@@ -77,7 +77,7 @@ caffeinate -i                                    # in another terminal; Ctrl+C t
 pio device monitor -f time -f log2file
 ```
 
-Type `s` in the serial monitor for a sensor self-check. The bench build also prints a `[live]` sensor line every 10 s; only the one-minute readings are uploaded.
+WiFi, device id and device key are not compiled in: each board keeps its own, set from a phone through its setup portal (WiFiManager), see [`docs/nueva-estacion.md`](docs/nueva-estacion.md). Type `s` in the serial monitor for a sensor self-check, `w` to open the setup portal. The bench build also prints a `[live]` sensor line every 10 s; only the one-minute readings are uploaded.
 
 Each minute the station prints one reading:
 

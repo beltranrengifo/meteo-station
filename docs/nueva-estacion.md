@@ -27,11 +27,36 @@ Para desactivar una estación: `update public.devices set active = false where d
 
 ## 3. Flashear la placa por USB (una vez)
 
-*Pendiente (meteo-no6).* Hoy la clave y el Wi-Fi van en `firmware/include/secrets.h` y el `device_id` en `firmware/platformio.ini`.
+Todas las estaciones llevan el mismo firmware: el Wi-Fi, el `device_id` y la clave no van compilados, cada placa los guarda en su memoria (NVS). `firmware/include/secrets.h` solo tiene la dirección de la función `ingest` (copia `secrets.example.h`).
 
-## 4. Configurar el Wi-Fi y la clave desde el móvil
+Desde `firmware/`, con la placa por USB:
 
-*Pendiente (meteo-no6), con WiFiManager.*
+```sh
+pio run -e station -t upload
+```
+
+Este primer flasheo por USB también pone la tabla de particiones con sitio para las actualizaciones por internet. A partir de aquí, las versiones nuevas llegan solas (paso 5).
+
+## 4. Configurar el Wi-Fi, el identificador y la clave desde el móvil o el portátil
+
+Una placa sin configurar abre su propia red Wi-Fi, `meteo-setup-XXXX` (las cuatro letras cambian de una placa a otra). El monitor serie dice cuál es. Sirve cualquier dispositivo con Wi-Fi y navegador; con el portátil puedes pegar la clave en vez de teclearla.
+
+1. Conéctate a `meteo-setup-XXXX`. Se abre sola una página; si no, entra en `http://192.168.4.1`.
+2. *Configure WiFi*: elige el Wi-Fi de la casa y escribe su contraseña.
+3. Rellena *Device id* (el del paso 1) y *Device key* (la clave del paso 2).
+4. *Save*. La placa se conecta y se reinicia con la configuración nueva. En el monitor serie verás `[wifi] connected` y luego `(HTTP 200)`.
+
+Si algo falla, el monitor serie lo dice:
+
+- `reason 15 (4-way handshake timeout, wrong password?)`: la contraseña del Wi-Fi está mal. Vuelve a abrir la red (abajo) y escríbela otra vez.
+- `HTTP 401`: el identificador o la clave no coinciden con los de Supabase. Vuelve a abrir la red y pega la clave del paso 2.
+
+La red `meteo-setup-XXXX` también se abre:
+
+- **A mano**: mantén pulsado el botón **BOOT** de la placa 3 segundos con la placa ya encendida (no al enchufarla, que entonces arranca en modo flasheo), o escribe `w` en el monitor serie. En la página, deja *Device key* vacío para conservar la clave guardada.
+- **Sola**, si la placa lleva 10 minutos sin conseguir conectarse desde que arrancó (por ejemplo, porque ha cambiado de casa o de router). Si nadie la configura en 10 minutos, se cierra y vuelve a probar el Wi-Fi guardado. Un corte del router cuando ya estaba conectada no la abre.
+
+La red `meteo-setup-XXXX` no tiene contraseña: mientras está abierta, cualquiera cerca podría cambiar la configuración. Por eso solo se abre en esos casos y se cierra sola.
 
 ## 5. Elegir su versión de firmware
 

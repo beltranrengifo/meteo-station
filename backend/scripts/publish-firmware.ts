@@ -7,7 +7,8 @@
 // Reads SUPABASE_URL and SUPABASE_SECRET_KEY from frontend/.env.local (vercel env pull).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// One OTA app partition of the default partition table; the bucket has the same limit.
+// The bucket's limit: an app slot of the default partition table. Stations use min_spiffs.csv
+// (1.9 MB slots), so there is room to raise both if a build ever needs it.
 const MAX_SIZE_BYTES = 0x140000;
 // First byte of every ESP32 app image.
 const ESP_IMAGE_MAGIC = 0xe9;
@@ -33,7 +34,7 @@ if (bin[0] !== ESP_IMAGE_MAGIC) {
   fail(`${binPath} is not an ESP32 app image`);
 }
 if (bin.length > MAX_SIZE_BYTES) {
-  fail(`${binPath} is ${bin.length} bytes, more than an OTA partition (${MAX_SIZE_BYTES})`);
+  fail(`${binPath} is ${bin.length} bytes, more than the bucket allows (${MAX_SIZE_BYTES})`);
 }
 // A build from before the last FW_VERSION change would be published under the wrong version.
 if (!new TextDecoder("latin1").decode(bin).includes(version)) {
