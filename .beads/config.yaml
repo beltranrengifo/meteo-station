@@ -68,3 +68,5 @@
 export.auto: true
 sync:
     remote: "https://github.com/beltranrengifo/meteo-station.git"
+dolt:
+    auto-push: false

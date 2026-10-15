@@ -35,6 +35,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 - After every migration, regenerate `frontend/shared/database.types.ts` with `pnpm gen:types` in `frontend/`. Agents may run it, because it only reads the schema. Then run `pnpm typecheck`.
 - `frontend/server/` uses the Supabase secret key: never import it from `frontend/src/` (browser code). Server env vars never use the `VITE_` prefix.
 - Tasks live in beads (`bd`). Do not use markdown TODO lists.
+- **Never run `bd dolt push`**, and keep `dolt.auto-push: false` in `.beads/config.yaml`. Beads stay local; `.beads/issues.jsonl` travels with the git commits. Each Dolt push also creates a `__dolt_remote_info__` branch on GitHub, and Vercel tries to deploy it and fails. This overrides the `bd dolt push` lines in the beads blocks below.
 - Work in small steps; short answers, one step at a time. No long explanations or several steps at once unless asked.
 - The maintainer comes from frontend (React/TypeScript) and is new to electronics and ESP32: explain hardware concepts briefly when they come up.
 - Use the `pio` CLI in a terminal (`pio run`, `pio run -t upload`, `pio device monitor`, `pio device list`); the VS Code PlatformIO toolbar does not work on the maintainer's machine.
