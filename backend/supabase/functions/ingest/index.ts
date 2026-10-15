@@ -1,7 +1,9 @@
 // Ingest endpoint for the weather stations: POST one reading or an array of readings.
 // Auth: x-device-key header, each station its own key (public.devices). Invalid readings are
 // skipped and reported, so one bad reading never blocks a station from emptying its buffer.
+// When a station runs another firmware than its target, the response offers the update.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { needsUpdate, runningFirmware, SIGNED_URL_TTL_S, type UpdateOffer } from "./update.ts";
 import { keyHash, parseBatch, type ReadingRow, validateReading } from "./validate.ts";
 
 // New-style secret key ("default" entry of SUPABASE_SECRET_KEYS), legacy service role as fallback.
@@ -17,6 +19,26 @@ function secretKey(): string {
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, secretKey(), {
   auth: { persistSession: false },
 });
+
+// The download for a station's target release, or null (logged) if it cannot be offered now:
+// the readings are already stored, so an update problem never fails the upload.
+async function updateOffer(target: string): Promise<UpdateOffer | null> {
+  const release = await supabase
+    .from("firmware_releases")
+    .select("path, sha256, size_bytes")
+    .eq("version", target)
+    .maybeSingle<{ path: string; sha256: string; size_bytes: number }>();
+  if (release.error || !release.data) {
+    console.error("release lookup failed", target, release.error?.message ?? "not found");
+    return null;
+  }
+  const signed = await supabase.storage.from("firmware").createSignedUrl(release.data.path, SIGNED_URL_TTL_S);
+  if (signed.error) {
+    console.error("signed URL failed", target, signed.error.message);
+    return null;
+  }
+  return { version: target, url: signed.data.signedUrl, sha256: release.data.sha256, size: release.data.size_bytes };
+}
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -35,10 +57,10 @@ Deno.serve(async (req) => {
   }
   const device = await supabase
     .from("devices")
-    .select("device_id")
+    .select("device_id, target_fw")
     .eq("key_sha256", await keyHash(key))
     .eq("active", true)
-    .maybeSingle<{ device_id: string }>();
+    .maybeSingle<{ device_id: string; target_fw: string | null }>();
   if (device.error) {
     console.error("device lookup failed", device.error.message);
     // 500 makes the station keep its readings and retry later.
@@ -85,5 +107,8 @@ Deno.serve(async (req) => {
   if (rejected.length > 0) {
     console.warn("rejected readings", JSON.stringify(rejected));
   }
-  return json({ accepted: rows.length, rejected }, 200);
+  const running = runningFirmware(rows);
+  const target = device.data.target_fw;
+  const update = needsUpdate(running, target) ? await updateOffer(target) : null;
+  return json({ accepted: rows.length, rejected, ...(update && { update }) }, 200);
 });

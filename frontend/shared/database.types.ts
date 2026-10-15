@@ -36,6 +36,7 @@ export type Database = {
           device_id: string
           key_sha256: string
           name: string
+          target_fw: string | null
         }
         Insert: {
           active?: boolean
@@ -43,6 +44,7 @@ export type Database = {
           device_id: string
           key_sha256: string
           name: string
+          target_fw?: string | null
         }
         Update: {
           active?: boolean
@@ -50,6 +52,42 @@ export type Database = {
           device_id?: string
           key_sha256?: string
           name?: string
+          target_fw?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_target_fw_fkey"
+            columns: ["target_fw"]
+            isOneToOne: false
+            referencedRelation: "firmware_releases"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
+      firmware_releases: {
+        Row: {
+          created_at: string
+          notes: string | null
+          path: string
+          sha256: string
+          size_bytes: number
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          notes?: string | null
+          path: string
+          sha256: string
+          size_bytes: number
+          version: string
+        }
+        Update: {
+          created_at?: string
+          notes?: string | null
+          path?: string
+          sha256?: string
+          size_bytes?: number
+          version?: string
         }
         Relationships: []
       }

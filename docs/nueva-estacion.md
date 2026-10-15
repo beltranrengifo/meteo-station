@@ -35,7 +35,23 @@ Para desactivar una estación: `update public.devices set active = false where d
 
 ## 5. Elegir su versión de firmware
 
-*Pendiente (meteo-gel y meteo-pto).*
+Cada estación tiene una versión objetivo (`devices.target_fw`). Si la que lleva es otra, en su siguiente subida la función `ingest` le contesta con un enlace temporal (10 min) para descargar la nueva y su huella SHA-256. Vacía: la estación se queda con la que tiene.
+
+Para publicar una versión, sube `FW_VERSION` en `firmware/include/config.h`, compila y, desde la raíz del repo:
+
+```sh
+pnpm publish:firmware firmware/.pio/build/station/firmware.bin "qué cambia"
+```
+
+El script comprueba que el archivo es un firmware de ESP32, que cabe en la partición y que lleva dentro esa versión; lo sube al bucket privado `firmware` y lo apunta en `firmware_releases`. Necesita `frontend/.env.local` (`vercel env pull`). Una versión publicada no se sobrescribe: para corregirla, sube otra.
+
+Después, estación por estación (primero la de la mesa), en Supabase → *SQL Editor*:
+
+```sql
+update public.devices set target_fw = '0.2.0' where device_id = 'meteo-station-bench';
+```
+
+*Que la placa descargue e instale la actualización: pendiente (meteo-pto).*
 
 ## 6. Comprobar que llegan sus lecturas
 

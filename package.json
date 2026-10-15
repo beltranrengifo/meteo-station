@@ -7,6 +7,7 @@
     "build": "pnpm -C frontend build",
     "test": "pnpm -C frontend test",
     "typecheck": "pnpm -C frontend typecheck",
-    "gen:types": "pnpm -C frontend gen:types"
+    "gen:types": "pnpm -C frontend gen:types",
+    "publish:firmware": "deno run --node-modules-dir=none --allow-read --allow-net --allow-env --env-file=frontend/.env.local backend/scripts/publish-firmware.ts"
   }
 }
