@@ -59,3 +59,11 @@
 - Problems and fix: around 21:00 the whole home WiFi failed (router Sagemcom F@st 5366S) and came back when the board was unplugged. Cause not confirmed; tracked in meteo-dg5. Added `WiFi.setSleep(false)`. Seven rain tips with nobody touching the gauge; tracked as a separate bug. The one reading still in RAM was lost when unplugged (expected until LittleFS).
 - Anemometer after moving per-second counting to `esp_timer`: gust reasonable when spun by hand. Native unit tests green (test_upload included).
 - config.h changes: upload constants (BUFFER_CAPACITY, UPLOAD_BATCH_MAX, HTTP_TIMEOUT_MS, WATCHDOG_TIMEOUT_S).
+
+## 2026-10-15 — Diagnosis: home WiFi failing when the projector is on (meteo-dg5)
+- Goal: find why the projector loses the network, and the board has upload errors, whenever both are on.
+- Setup: bench board on USB (fw 0.1.2, IP 192.168.1.150 by DHCP, RSSI -64 dBm). Android projector on WiFi. Router not touched.
+- Result: cause found. The projector had a static IP, 192.168.1.128, inside the router's DHCP range. The router gave that same IP to the maintainer's Mac, so the two devices fought over it: the projector showed "connected, no internet" and the Mac lost its connection. Switching the projector to DHCP gave it 192.168.1.154 and both recovered at once.
+- Earlier evidence: the 2026-10-13 serial log showed no WiFi disconnect on the board, only one `start_ssl_client -1` that recovered 10 s later. The board was never the cause; it only changed which device the router handed .128 to.
+- Problems and fix: projector set to DHCP. No firmware change. `WiFi.setSleep(false)` stays (harmless on mains power).
+- config.h changes: none.
