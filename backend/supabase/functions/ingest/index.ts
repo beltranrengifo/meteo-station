@@ -1,14 +1,8 @@
-// Ingest endpoint for the weather station: POST one reading or an array of readings.
-// Auth: x-device-key header. Invalid readings are skipped and reported, so one bad reading
-// never blocks the station from emptying its buffer.
+// Ingest endpoint for the weather stations: POST one reading or an array of readings.
+// Auth: x-device-key header, each station its own key (public.devices). Invalid readings are
+// skipped and reported, so one bad reading never blocks a station from emptying its buffer.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { parseBatch, type ReadingRow, safeEqual, validateReading } from "./validate.ts";
-
-const DEVICE_KEY = Deno.env.get("DEVICE_KEY") ?? "";
-const ALLOWED_DEVICES = (Deno.env.get("ALLOWED_DEVICES") ?? "")
-  .split(",")
-  .map((device) => device.trim())
-  .filter(Boolean);
+import { keyHash, parseBatch, type ReadingRow, validateReading } from "./validate.ts";
 
 // New-style secret key ("default" entry of SUPABASE_SECRET_KEYS), legacy service role as fallback.
 function secretKey(): string {
@@ -35,9 +29,25 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return json({ error: "method not allowed" }, 405);
   }
-  if (!DEVICE_KEY || !safeEqual(req.headers.get("x-device-key") ?? "", DEVICE_KEY)) {
+  const key = req.headers.get("x-device-key") ?? "";
+  if (key.length === 0) {
     return json({ error: "unauthorized" }, 401);
   }
+  const device = await supabase
+    .from("devices")
+    .select("device_id")
+    .eq("key_sha256", await keyHash(key))
+    .eq("active", true)
+    .maybeSingle<{ device_id: string }>();
+  if (device.error) {
+    console.error("device lookup failed", device.error.message);
+    // 500 makes the station keep its readings and retry later.
+    return json({ error: "database error" }, 500);
+  }
+  if (!device.data) {
+    return json({ error: "unauthorized" }, 401);
+  }
+  const deviceId = device.data.device_id;
 
   let body: unknown;
   try {
@@ -55,7 +65,7 @@ Deno.serve(async (req) => {
   const rows: ReadingRow[] = [];
   const rejected: { index: number; reason: string }[] = [];
   batch.items.forEach((item, index) => {
-    const result = validateReading(item, now, ALLOWED_DEVICES);
+    const result = validateReading(item, now, deviceId);
     if (result.ok) rows.push(result.row);
     else rejected.push({ index, reason: result.reason });
   });

@@ -60,14 +60,15 @@ function checkNumber(name: string, value: unknown, rule: FieldRule): string | nu
   return null;
 }
 
-export function validateReading(raw: unknown, now: Date, allowedDevices: string[]): ValidationResult {
+// deviceId is the station the request's key belongs to: a reading may only be for that station.
+export function validateReading(raw: unknown, now: Date, deviceId: string): ValidationResult {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return { ok: false, reason: "reading must be an object" };
   }
   const r = raw as Record<string, unknown>;
 
-  if (typeof r.device_id !== "string" || !allowedDevices.includes(r.device_id)) {
-    return { ok: false, reason: "device_id not allowed" };
+  if (r.device_id !== deviceId) {
+    return { ok: false, reason: "device_id does not match the device key" };
   }
 
   if (typeof r.ts !== "string" || !TS_PATTERN.test(r.ts)) {
@@ -96,7 +97,7 @@ export function validateReading(raw: unknown, now: Date, allowedDevices: string[
 
   // Only known fields reach the database.
   const row: ReadingRow = {
-    device_id: r.device_id,
+    device_id: deviceId,
     ts: r.ts,
     temp_c: (r.temp_c ?? null) as number | null,
     humidity_pct: (r.humidity_pct ?? null) as number | null,
@@ -119,12 +120,9 @@ export function parseBatch(body: unknown): { ok: true; items: unknown[] } | { ok
   return { ok: true, items };
 }
 
-// Constant-time string comparison, so the device key cannot be guessed byte by byte from timing.
-export function safeEqual(a: string, b: string): boolean {
-  if (a.length === 0 || a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
+// SHA-256 of a device key, as lowercase hex: what public.devices stores instead of the key.
+// The lookup compares hashes, so timing says nothing about the key itself.
+export async function keyHash(key: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

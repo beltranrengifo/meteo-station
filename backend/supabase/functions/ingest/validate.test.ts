@@ -1,8 +1,8 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { MAX_BATCH, parseBatch, safeEqual, validateReading } from "./validate.ts";
+import { keyHash, MAX_BATCH, parseBatch, validateReading } from "./validate.ts";
 
 const NOW = new Date("2026-10-20T10:15:30Z");
-const ALLOWED = ["meteo-station-1", "meteo-station-bench"];
+const DEVICE = "meteo-station-1";
 
 function reading(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -23,14 +23,14 @@ function reading(overrides: Record<string, unknown> = {}): Record<string, unknow
 }
 
 function reasonOf(raw: unknown): string | null {
-  const result = validateReading(raw, NOW, ALLOWED);
+  const result = validateReading(raw, NOW, DEVICE);
   return result.ok ? null : result.reason;
 }
 
 // ---- valid readings ----
 
 Deno.test("accepts the firmware payload as-is", () => {
-  const result = validateReading(reading(), NOW, ALLOWED);
+  const result = validateReading(reading(), NOW, DEVICE);
   assertEquals(result.ok, true);
   if (result.ok) assertEquals(result.row, reading());
 });
@@ -43,7 +43,7 @@ Deno.test("accepts nulls where the station may have no data", () => {
 });
 
 Deno.test("drops unknown fields from the stored row", () => {
-  const result = validateReading(reading({ extra: "x" }), NOW, ALLOWED);
+  const result = validateReading(reading({ extra: "x" }), NOW, DEVICE);
   assertEquals(result.ok && "extra" in result.row, false);
 });
 
@@ -53,8 +53,9 @@ Deno.test("accepts readings from the station buffer up to 7 days old", () => {
 
 // ---- rejected readings ----
 
-Deno.test("rejects an unknown device", () => {
-  assertEquals(reasonOf(reading({ device_id: "someone-else" })), "device_id not allowed");
+Deno.test("rejects a reading for another station than the key's", () => {
+  assertEquals(reasonOf(reading({ device_id: "meteo-station-bench" })), "device_id does not match the device key");
+  assertEquals(reasonOf(reading({ device_id: undefined })), "device_id does not match the device key");
 });
 
 Deno.test("rejects timestamps not on a whole minute or not UTC", () => {
@@ -103,11 +104,8 @@ Deno.test("rejects an empty or oversized batch", () => {
   assertEquals(parseBatch(new Array(MAX_BATCH + 1).fill(reading())).ok, false);
 });
 
-// ---- key comparison ----
+// ---- device key ----
 
-Deno.test("safeEqual compares keys without early exit", () => {
-  assertEquals(safeEqual("abc123", "abc123"), true);
-  assertEquals(safeEqual("abc123", "abc124"), false);
-  assertEquals(safeEqual("abc", "abc123"), false);
-  assertEquals(safeEqual("", ""), false);
+Deno.test("keyHash is the SHA-256 of the key as lowercase hex", async () => {
+  assertEquals(await keyHash("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 });

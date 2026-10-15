@@ -29,6 +29,30 @@ export type Database = {
         }
         Relationships: []
       }
+      devices: {
+        Row: {
+          active: boolean
+          created_at: string
+          device_id: string
+          key_sha256: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          device_id: string
+          key_sha256: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          device_id?: string
+          key_sha256?: string
+          name?: string
+        }
+        Relationships: []
+      }
       readings: {
         Row: {
           device_id: string

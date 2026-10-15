@@ -50,7 +50,7 @@ firmware/   PlatformIO project (Arduino framework, esp32dev; envs bench, station
   src/        main loop, sensors/, net/ (WiFi, NTP), diagnostics/
   lib/        pure logic with no Arduino dependency (wind, rain, vane, debounce, pulse filter, JSON reading)
   test/       Unity unit tests for lib/, run on the computer
-backend/    Supabase: migrations (readings, hourly/daily aggregates, pg_cron) and the ingest Edge Function
+backend/    Supabase: migrations (readings, devices, hourly/daily aggregates, pg_cron), the ingest Edge Function, scripts/ (station keys)
 frontend/   Vite + React + TypeScript dashboard, deployed on Vercel
   api/        read API: /api/now, /api/day?date=, /api/last-24h, /api/last-7-days, /api/range?from=&to=, /api/month?month=, /api/daily, /api/sky (CDN-cached)
   server/     server-only helpers for api/ (Supabase secret key, param validation), Vitest tests
@@ -84,6 +84,10 @@ Each minute the station prints one reading:
 ```json
 {"device_id":"meteo-station-1","ts":"2026-10-20T10:15:00Z","temp_c":18.4,"humidity_pct":62.1,"pressure_hpa":1016.3,"wind_avg_ms":2.10,"wind_gust_ms":4.60,"wind_dir_deg":225,"rain_mm":0.2794,"rssi":-67,"uptime_s":86400,"fw":"0.1.0"}
 ```
+
+## Adding a station
+
+Each station has its own key; only its SHA-256 is stored, in `public.devices`. [`backend/scripts/station-key.sh`](backend/scripts/station-key.sh) creates a key and prints the SQL that registers it. The full step-by-step guide is [`docs/nueva-estacion.md`](docs/nueva-estacion.md) (Spanish).
 
 ## Frontend and read API
 
