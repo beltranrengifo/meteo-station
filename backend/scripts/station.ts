@@ -2,7 +2,10 @@
 // USB cable (firmware 0.4.0 or later; older readings have no health fields).
 //
 //   pnpm station logs <device_id> [hours]   health and events of the last hours (default 24)
-//   pnpm station fake <device_id>           made-up readings for a test station (FAKE_STATION_KEY)
+//   pnpm station show <device_id>           list it on the dashboard (needs its display_name)
+//   pnpm station hide <device_id>           take it off the dashboard; nothing is deleted
+//   pnpm station fake <device_id>           made-up readings for a test station (FAKE_STATION_KEY),
+//                                           listed on the dashboard until Ctrl+C
 //
 // Times are Madrid time. Reads backend/.env.local, like pnpm firmware.
 import { runFakeStation } from "./fake-station.ts";
@@ -10,6 +13,8 @@ import { connect, fail } from "./supabase-admin.ts";
 
 const USAGE = `usage:
   pnpm station logs <device_id> [hours]
+  pnpm station show <device_id>
+  pnpm station hide <device_id>
   pnpm station fake <device_id>`;
 const MAX_HOURS = 24 * 30;
 
@@ -123,18 +128,51 @@ async function logs(deviceId: string | undefined, hoursArg: string | undefined) 
   }
 }
 
+// The dashboard picks the change up within a minute (its station list cache).
+async function setListed(deviceId: string | undefined, listed: boolean) {
+  if (!deviceId) {
+    fail(USAGE);
+  }
+  const result = await connect()
+    .from("devices")
+    .update({ listed })
+    .eq("device_id", deviceId)
+    .select("device_id, display_name");
+  if (result.error) {
+    fail(`could not change ${deviceId}: ${result.error.message}`);
+  }
+  if (result.data.length === 0) {
+    fail(`no station ${deviceId} in public.devices`);
+  }
+  const name = result.data[0].display_name;
+  console.log(listed ? `${deviceId} is on the dashboard as "${name}"` : `${deviceId} is off the dashboard`);
+}
+
 const [command, ...args] = Deno.args;
 switch (command) {
   case "logs":
     await logs(args[0], args[1]);
     break;
+  case "show":
+    await setListed(args[0], true);
+    break;
+  case "hide":
+    await setListed(args[0], false);
+    break;
   case "fake": {
+    const deviceId = args[0];
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("FAKE_STATION_KEY");
-    if (!args[0] || !url || !key) {
+    if (!deviceId || !url || !key) {
       fail(`${USAGE}\nfake needs SUPABASE_URL and FAKE_STATION_KEY (the test station's key) in backend/.env.local`);
     }
-    await runFakeStation(args[0], url, key);
+    // A test station is only on the dashboard while it sends data.
+    Deno.addSignalListener("SIGINT", async () => {
+      await setListed(deviceId, false);
+      Deno.exit(0);
+    });
+    await setListed(deviceId, true);
+    await runFakeStation(deviceId, url, key);
     break;
   }
   default:
