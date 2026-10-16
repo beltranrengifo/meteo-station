@@ -99,6 +99,24 @@ Si la descarga falla (red, enlace caducado, SHA-256 distinta), no se instala nad
 
 En Supabase, la columna `fw` de `readings` dice con qué versión se tomó cada lectura.
 
-## 6. Comprobar que llegan sus lecturas
+## 6. Comprobar que llegan sus lecturas y ver qué le pasa
 
-En Supabase → *Table Editor* → `readings`, filtra por su `device_id`: debe aparecer una lectura por minuto. *En el dashboard, con el selector de estación: pendiente (meteo-1wd).*
+Desde la raíz del repo, sin cable y desde cualquier sitio:
+
+```sh
+pnpm station logs meteo-station-bench       # últimas 24 h
+pnpm station logs meteo-station-bench 2     # últimas 2 h
+```
+
+Muestra su última lectura (versión, tiempo encendida, señal Wi-Fi, memoria libre, cortes de Wi-Fi desde que arrancó), cuántas lecturas llegaron (debería ser una por minuto) y sus eventos en hora de Madrid:
+
+```
+  16 Oct, 11:02:41  boot    fw 0.4.0, reset: power on
+  16 Oct, 11:02:47  wifi    connected, RSSI -64 dBm
+  16 Oct, 14:20:05  wifi    lost, reason 200 (beacon timeout)
+  16 Oct, 14:21:12  wifi    back after 67 s, RSSI -66 dBm
+```
+
+Los eventos (arranques y su motivo, pasos de la OTA, Wi-Fi caído y recuperado, fallos de subida, portal de configuración) viajan con la siguiente subida, así que llegan con hasta un minuto de retraso, o cuando vuelve el Wi-Fi. Los que no llegaron a subirse antes de un reinicio se pierden; el evento `boot` dice por qué se reinició (`power on` es un corte de luz, `task watchdog` un cuelgue, `brownout` una fuente que no da suficiente).
+
+*En el dashboard, con el selector de estación: pendiente (meteo-1wd).*

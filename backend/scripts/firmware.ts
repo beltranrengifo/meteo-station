@@ -6,7 +6,7 @@
 //
 // The version is FW_VERSION in firmware/include/config.h. Reads SUPABASE_URL and
 // SUPABASE_SECRET_KEY from backend/.env.local (git-ignored; see docs/nueva-estacion.md).
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { connect, fail } from "./supabase-admin.ts";
 
 // The bucket's limit: an app slot of the default partition table. Stations use min_spiffs.csv
 // (1.9 MB slots), so there is room to raise both if a build ever needs it.
@@ -20,20 +20,6 @@ const USAGE = `usage:
   pnpm firmware publish <bench|station> ["notes"]
   pnpm firmware target <device_id> <version|none>
   pnpm firmware status`;
-
-function fail(message: string): never {
-  console.error(message);
-  Deno.exit(1);
-}
-
-function connect() {
-  const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SECRET_KEY");
-  if (!url || !key) {
-    fail("SUPABASE_URL and SUPABASE_SECRET_KEY must be set in backend/.env.local (docs/nueva-estacion.md, step 5)");
-  }
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 async function configVersion(): Promise<string> {
   const configH = await Deno.readTextFile(new URL("include/config.h", FIRMWARE_DIR));

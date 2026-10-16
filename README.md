@@ -87,7 +87,7 @@ Each minute the station prints one reading:
 
 ## Adding a station
 
-Each station has its own key; only its SHA-256 is stored, in `public.devices`. [`backend/scripts/station-key.sh`](backend/scripts/station-key.sh) creates a key and prints the SQL that registers it. Firmware updates go over the air: `pnpm firmware publish <bench|station>` builds and publishes `FW_VERSION`, `pnpm firmware target <device_id> <version>` moves a station to it, and `pnpm firmware status` shows what each one runs. A new firmware that cannot upload within 10 minutes rolls back to the previous one. The full step-by-step guide is [`docs/nueva-estacion.md`](docs/nueva-estacion.md) (Spanish).
+Each station has its own key; only its SHA-256 is stored, in `public.devices`. [`backend/scripts/station-key.sh`](backend/scripts/station-key.sh) creates a key and prints the SQL that registers it. Firmware updates go over the air: `pnpm firmware publish <bench|station>` builds and publishes `FW_VERSION`, `pnpm firmware target <device_id> <version>` moves a station to it, and `pnpm firmware status` shows what each one runs. A new firmware that cannot upload within 10 minutes rolls back to the previous one. Stations report their health and events (boots, OTA, WiFi, upload failures) with their uploads: `pnpm station logs <device_id> [hours]` reads them from anywhere. The full step-by-step guide is [`docs/nueva-estacion.md`](docs/nueva-estacion.md) (Spanish).
 
 ## Frontend and read API
 
