@@ -21,7 +21,9 @@ describe('toForecast', () => {
       time: Array.from({ length: hourCount }, (_, i) => midnight + i * 3600),
       weather_code: Array.from({ length: hourCount }, (_, i) => i),
       temperature_2m: Array.from({ length: hourCount }, (_, i) => 10 + i / 10),
-      precipitation_probability: Array.from({ length: hourCount }, (_, i) => (i === 14 ? null : i)),
+      precipitation: Array.from({ length: hourCount }, (_, i) => i / 10),
+      precipitation_probability: Array.from({ length: hourCount }, (_, i) => (i === 15 ? null : i)),
+      snowfall: Array.from({ length: hourCount }, (_, i) => (i === 16 ? 0.7 : 0)),
       is_day: Array.from({ length: hourCount }, (_, i) => (i % 24 >= 8 && i % 24 < 19 ? 1 : 0)),
     },
     daily: {
@@ -31,6 +33,7 @@ describe('toForecast', () => {
       temperature_2m_min: [13.4, 15.5],
       precipitation_sum: [0, 2],
       precipitation_probability_max: [0, 48],
+      snowfall_sum: [0, 1.4],
       wind_gusts_10m_max: [3.4, 9.3],
     },
   };
@@ -40,17 +43,28 @@ describe('toForecast', () => {
   it('starts the hours at the current one and keeps 24', () => {
     const { hours } = toForecast(week, now);
     expect(hours).toHaveLength(24);
-    expect(hours[0]).toEqual({
-      time: '2026-10-16T12:00:00Z', weatherCode: 14, isDay: true, tempC: 11.4, precipProbabilityPct: null,
-    });
+    expect(hours[0]).toMatchObject({ time: '2026-10-16T12:00:00Z', weatherCode: 14, isDay: true, tempC: 11.4 });
     expect(hours.at(-1)!.time).toBe('2026-10-17T11:00:00Z');
+  });
+
+  it('gives each hour the rain of the hour after it', () => {
+    // 14:00 Madrid gets Open-Meteo's 15:00 values, which are for 14:00 to 15:00.
+    const [first, second] = toForecast(week, now).hours;
+    expect(first).toMatchObject({ precipMm: 1.5, precipProbabilityPct: null, snowCm: 0 });
+    expect(second).toMatchObject({ precipMm: 1.6, precipProbabilityPct: 16, snowCm: 0.7 });
+  });
+
+  it('has no rain for an hour past the end of the forecast', () => {
+    // 22:00 UTC on the second day: the last hour Open-Meteo sent.
+    const [last] = toForecast(week, Temporal.Instant.from('2026-10-17T21:00:00Z')).hours;
+    expect(last).toMatchObject({ time: '2026-10-17T21:00:00Z', precipMm: null, precipProbabilityPct: null, snowCm: null });
   });
 
   it('dates each day in Madrid', () => {
     const { days } = toForecast(week, now);
     expect(days.map((d) => d.date)).toEqual(['2026-10-16', '2026-10-17']);
     expect(days[1]).toEqual({
-      date: '2026-10-17', weatherCode: 61, tempMinC: 15.5, tempMaxC: 22.3, precipMm: 2, precipProbabilityPct: 48, gustMaxMs: 9.3,
+      date: '2026-10-17', weatherCode: 61, tempMinC: 15.5, tempMaxC: 22.3, precipMm: 2, precipProbabilityPct: 48, snowCm: 1.4, gustMaxMs: 9.3,
     });
   });
 

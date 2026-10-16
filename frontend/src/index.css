@@ -215,14 +215,21 @@ button { font: inherit; }
 .forecast-temps b { font-size: 1.6rem; letter-spacing: -.05em; }
 .forecast-temps > span { color: var(--muted); font-size: .85rem; }
 .forecast-detail { color: var(--muted); font-size: .68rem; }
+.forecast-rain, .forecast-snow { display: flex; align-items: center; gap: .2rem; color: var(--blue); font-size: .75rem; font-weight: 700; }
+.forecast-snow { color: var(--indigo); }
 .forecast-hours-title { margin-top: 2.5rem; }
 .forecast-hours-title h3 { margin: .3rem 0 0; font-size: 1.2rem; letter-spacing: -.03em; }
-.forecast-hours { display: grid; grid-auto-columns: minmax(4.2rem, 1fr); grid-auto-flow: column; margin: 1.1rem 0 0; padding: .4rem; overflow-x: auto; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); list-style: none; }
-.forecast-hour { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .7rem .2rem; font-size: .72rem; }
+/* One row of 8 slots, every 3 hours: nothing to scroll; every hour is in the chart below. */
+.forecast-hours { display: grid; grid-template-columns: repeat(8, 1fr); margin: 1.1rem 0 0; padding: .4rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); list-style: none; }
+.forecast-hour { display: flex; flex-direction: column; align-items: center; gap: .45rem; min-width: 0; padding: .6rem .1rem .7rem; font-size: .72rem; }
+.forecast-hour em { min-height: 1.2em; color: var(--blue); font-size: .62rem; font-style: normal; font-weight: 700; }
 .forecast-hour > span { color: var(--muted); }
 .forecast-hour:first-child > span { color: var(--foreground); font-weight: 700; }
+.forecast-chart { margin-top: .85rem; }
 .forecast-hour b { font-size: .95rem; }
 .forecast-hour small { display: flex; align-items: center; gap: .15rem; color: var(--muted); font-size: .65rem; }
+.forecast-hour small.forecast-rain { color: var(--blue); font-size: .68rem; }
+.forecast-hour small.forecast-snow { color: var(--indigo); font-size: .68rem; }
 
 /* Custom range picker (react-datepicker, recolored with the tokens). Scoped under .custom-range
    so these win over the picker's own CSS, which loads later with the lazy chunk. */
@@ -269,6 +276,8 @@ footer .attribution a { color: inherit; }
   .view-tabs { margin-bottom: 2rem; }
   .view-tabs button { flex: 1; }
   .forecast-days { grid-template-columns: repeat(2, 1fr); }
+  .forecast-hours { padding: .3rem .1rem; }
+  .forecast-hour small svg { display: none; }
   .hero-row, .section-heading, .panel-title { align-items: flex-start; flex-direction: column; }
   .hero-side { width: 100%; align-items: stretch; }
   .weather-visual { flex: 1; min-width: 0; }

@@ -78,7 +78,12 @@ export interface ForecastHour {
   weatherCode: number;                 // WMO weather interpretation code
   isDay: boolean;
   tempC: number;
-  precipProbabilityPct: number | null; // null when the model gives none
+  // Precipitation over the hour starting at `time`: the model's amount (rain and snow, as
+  // water), the chance of more than 0.1 mm (ensemble models), and the snow in it (cm). Null when
+  // the model gives none.
+  precipMm: number | null;
+  precipProbabilityPct: number | null;
+  snowCm: number | null;
 }
 
 export interface ForecastDay {
@@ -86,8 +91,9 @@ export interface ForecastDay {
   weatherCode: number;                 // the day's most significant weather
   tempMinC: number;
   tempMaxC: number;
-  precipMm: number;
-  precipProbabilityPct: number | null;
+  precipMm: number;                    // the model's amount for the day, rain and snow as water
+  precipProbabilityPct: number | null; // the day's highest hourly chance of more than 0.1 mm
+  snowCm: number;                      // snowfall, part of precipMm
   gustMaxMs: number;
 }
 

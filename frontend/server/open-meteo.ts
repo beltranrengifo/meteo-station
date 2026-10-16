@@ -44,13 +44,17 @@ const FORECAST_DAYS = 7;
 
 // The parts of the week forecast we read. With timeformat=unixtime, hourly times are exact
 // instants (the hour repeated when summer time ends is not ambiguous) and daily times are each
-// day's local midnight. Wind speeds in m/s, like the station's.
+// day's local midnight. Wind speeds in m/s, like the station's. Precipitation (rain and snow,
+// as water) in mm, snowfall in cm. Hourly precipitation, snowfall and the chance of more than
+// 0.1 mm are for the hour *before* each time.
 export interface OpenMeteoWeek {
   hourly: {
     time: number[];
     weather_code: number[];
     temperature_2m: number[];
+    precipitation: (number | null)[];
     precipitation_probability: (number | null)[];
+    snowfall: (number | null)[];
     is_day: number[];
   };
   daily: {
@@ -60,6 +64,7 @@ export interface OpenMeteoWeek {
     temperature_2m_min: number[];
     precipitation_sum: number[];
     precipitation_probability_max: (number | null)[];
+    snowfall_sum: number[];
     wind_gusts_10m_max: number[];
   };
 }
@@ -68,8 +73,8 @@ export function weekUrl({ latitude, longitude }: Coordinates): string {
   const params = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
-    hourly: 'weather_code,temperature_2m,precipitation_probability,is_day',
-    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max',
+    hourly: 'weather_code,temperature_2m,precipitation,precipitation_probability,snowfall,is_day',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,snowfall_sum,wind_gusts_10m_max',
     timezone: TIME_ZONE,
     timeformat: 'unixtime',
     wind_speed_unit: 'ms',
@@ -78,7 +83,9 @@ export function weekUrl({ latitude, longitude }: Coordinates): string {
   return `${FORECAST_URL}?${params}`;
 }
 
-// Hours from the current one on (Open-Meteo starts at today's 00:00), and every day.
+// Hours from the current one on (Open-Meteo starts at today's 00:00), and every day. Each hour
+// gets the precipitation and snow of the hour that follows it (Open-Meteo's value at the next time), so an hour
+// reads as "from this time on"; null past the last one.
 export function toForecast(week: OpenMeteoWeek, now: Temporal.Instant): ForecastResponse {
   const { hourly, daily } = week;
   const thisHour = now.round({ smallestUnit: 'hour', roundingMode: 'floor' }).epochMilliseconds;
@@ -90,7 +97,9 @@ export function toForecast(week: OpenMeteoWeek, now: Temporal.Instant): Forecast
       weatherCode: hourly.weather_code[at],
       isDay: hourly.is_day[at] === 1,
       tempC: hourly.temperature_2m[at],
-      precipProbabilityPct: hourly.precipitation_probability[at],
+      precipMm: hourly.precipitation[at + 1] ?? null,
+      precipProbabilityPct: hourly.precipitation_probability[at + 1] ?? null,
+      snowCm: hourly.snowfall[at + 1] ?? null,
     };
   });
   const days = daily.time.map((t, i) => ({
@@ -100,6 +109,7 @@ export function toForecast(week: OpenMeteoWeek, now: Temporal.Instant): Forecast
     tempMaxC: daily.temperature_2m_max[i],
     precipMm: daily.precipitation_sum[i],
     precipProbabilityPct: daily.precipitation_probability_max[i],
+    snowCm: daily.snowfall_sum[i],
     gustMaxMs: daily.wind_gusts_10m_max[i],
   }));
   return { hours, days };
