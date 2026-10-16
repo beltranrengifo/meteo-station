@@ -2,11 +2,15 @@
 // USB cable (firmware 0.4.0 or later; older readings have no health fields).
 //
 //   pnpm station logs <device_id> [hours]   health and events of the last hours (default 24)
+//   pnpm station fake <device_id>           made-up readings for a test station (FAKE_STATION_KEY)
 //
 // Times are Madrid time. Reads backend/.env.local, like pnpm firmware.
+import { runFakeStation } from "./fake-station.ts";
 import { connect, fail } from "./supabase-admin.ts";
 
-const USAGE = "usage: pnpm station logs <device_id> [hours]";
+const USAGE = `usage:
+  pnpm station logs <device_id> [hours]
+  pnpm station fake <device_id>`;
 const MAX_HOURS = 24 * 30;
 
 const madrid = new Intl.DateTimeFormat("en-GB", {
@@ -124,6 +128,15 @@ switch (command) {
   case "logs":
     await logs(args[0], args[1]);
     break;
+  case "fake": {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("FAKE_STATION_KEY");
+    if (!args[0] || !url || !key) {
+      fail(`${USAGE}\nfake needs SUPABASE_URL and FAKE_STATION_KEY (the test station's key) in backend/.env.local`);
+    }
+    await runFakeStation(args[0], url, key);
+    break;
+  }
   default:
     fail(USAGE);
 }
