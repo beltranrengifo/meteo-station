@@ -2,9 +2,20 @@
 
 #include <WiFi.h>
 
+#include "diagnostics/events.h"
+
 static constexpr uint32_t RECONNECT_AFTER_MS = 30000;
 
 static uint32_t disconnectedSince = 0;
+
+// Written by the WiFi event task, read by the loop task.
+static volatile bool linkUp = false;          // got an IP and has not lost the link since
+static volatile uint32_t disconnects = 0;     // drops of an established link since boot
+static volatile uint8_t lastDisconnectReason = 0;
+
+// Loop task only: what the remote log last said.
+static bool reportedUp = false;
+static uint32_t lostAtMs = 0;  // 0 until the link is lost once
 
 static const char *disconnectReasonName(uint8_t reason) {
   switch (reason) {
@@ -26,10 +37,17 @@ static void onWifiEvent(arduino_event_id_t event, arduino_event_info_t info) {
       Serial.println("[wifi] associated with access point");
       break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      linkUp = true;
       Serial.printf("[wifi] connected, IP %s, RSSI %d dBm\n",
                     WiFi.localIP().toString().c_str(), WiFi.RSSI());
       break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+      lastDisconnectReason = info.wifi_sta_disconnected.reason;
+      // Failed attempts while reconnecting fire this too; only a lost link counts as a drop.
+      if (linkUp) {
+        linkUp = false;
+        disconnects++;
+      }
       Serial.printf("[wifi] disconnected, reason %d (%s)\n",
                     info.wifi_sta_disconnected.reason,
                     disconnectReasonName(info.wifi_sta_disconnected.reason));
@@ -80,6 +98,28 @@ void wifiLoop() {
     disconnectedSince = millis();
   }
 }
+
+void wifiWatch() {
+  bool up = WiFi.status() == WL_CONNECTED;
+  if (up == reportedUp) {
+    return;
+  }
+  reportedUp = up;
+  if (!up) {
+    lostAtMs = millis();
+    if (lostAtMs == 0) {
+      lostAtMs = 1;
+    }
+    uint8_t reason = lastDisconnectReason;
+    logEvent("wifi", "lost, reason %u (%s)", (unsigned)reason, disconnectReasonName(reason));
+  } else if (lostAtMs == 0) {
+    logEvent("wifi", "connected, RSSI %d dBm", WiFi.RSSI());
+  } else {
+    logEvent("wifi", "back after %lu s, RSSI %d dBm", (unsigned long)((millis() - lostAtMs) / 1000), WiFi.RSSI());
+  }
+}
+
+uint32_t wifiDisconnects() { return disconnects; }
 
 bool wifiIsConnected() { return WiFi.status() == WL_CONNECTED; }
 

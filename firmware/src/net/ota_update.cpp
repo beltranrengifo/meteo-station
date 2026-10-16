@@ -10,6 +10,7 @@
 #include <ota_policy.h>
 
 #include "config.h"
+#include "diagnostics/events.h"
 #include "net/setup_portal.h"
 #include "net/uploader.h"
 #include "root_ca.h"
@@ -51,14 +52,14 @@ void otaBegin() {
     case BootOutcome::Verifying:
       if (pendingVerify) {
         verifying = true;
-        Serial.printf("[ota] first boot of %s: kept after its first upload, else back to the previous firmware in %lu min\n",
-                      FW_VERSION, (unsigned long)(OTA_VERIFY_TIMEOUT_MS / 60000));
+        logEvent("ota", "first boot of %s: kept after its first upload, else back to the previous firmware in %lu min",
+                 FW_VERSION, (unsigned long)(OTA_VERIFY_TIMEOUT_MS / 60000));
       } else {
         prefs.remove(KEY_INSTALLED);  // flashed by USB since: nothing to verify
       }
       break;
     case BootOutcome::RolledBack:
-      Serial.printf("[ota] %s did not work, back on %s: it will not be installed again\n", installed, FW_VERSION);
+      logEvent("ota", "%s did not work, back on %s: it will not be installed again", installed, FW_VERSION);
       strlcpy(failedVersion, installed, sizeof(failedVersion));
       prefs.putString(KEY_FAILED, failedVersion);
       prefs.remove(KEY_INSTALLED);
@@ -81,7 +82,7 @@ void otaOnDelivered(const char *responseBody) {
     prefs.begin(NAMESPACE, false);
     prefs.remove(KEY_INSTALLED);
     prefs.end();
-    Serial.printf("[ota] %s delivered its first upload: kept\n", FW_VERSION);
+    logEvent("ota", "%s delivered its first upload: kept", FW_VERSION);
   }
 
   if (!parseUpdateOffer(responseBody, candidate)) {
@@ -97,7 +98,7 @@ void otaOnDelivered(const char *responseBody) {
     case OfferDecision::FailedBefore:
       if (strcmp(lastSkipped, candidate.version) != 0) {
         strlcpy(lastSkipped, candidate.version, sizeof(lastSkipped));
-        Serial.printf("[ota] %s offered, skipped: it rolled back before\n", candidate.version);
+        logEvent("ota", "%s offered, skipped: it rolled back before", candidate.version);
       }
       break;
     case OfferDecision::AlreadyRunning:
@@ -116,22 +117,22 @@ static bool download(const UpdateOffer &offer) {
   http.setConnectTimeout(HTTP_TIMEOUT_MS);
   http.setTimeout(HTTP_TIMEOUT_MS);
   if (!http.begin(client, offer.url)) {
-    Serial.println("[ota] download failed: bad URL");
+    logEvent("ota", "download failed: bad URL");
     return false;
   }
   int code = http.GET();
   if (code != 200) {
-    Serial.printf("[ota] download failed (%s %d)\n", code < 0 ? "error" : "HTTP", code);
+    logEvent("ota", "download failed (%s %d)", code < 0 ? "error" : "HTTP", code);
     http.end();
     return false;
   }
   if (http.getSize() != (int)offer.size) {
-    Serial.printf("[ota] download failed: %d bytes, expected %lu\n", http.getSize(), (unsigned long)offer.size);
+    logEvent("ota", "download failed: %d bytes, expected %lu", http.getSize(), (unsigned long)offer.size);
     http.end();
     return false;
   }
   if (!Update.begin(offer.size)) {
-    Serial.printf("[ota] cannot install: %s\n", Update.errorString());
+    logEvent("ota", "cannot install: %s", Update.errorString());
     http.end();
     return false;
   }
@@ -149,8 +150,8 @@ static bool download(const UpdateOffer &offer) {
     size_t available = stream->available();
     if (available == 0) {
       if (!stream->connected() || millis() - lastDataMs > HTTP_TIMEOUT_MS) {
-        Serial.printf("[ota] download stopped at %lu of %lu bytes\n", (unsigned long)received,
-                      (unsigned long)offer.size);
+        logEvent("ota", "download stopped at %lu of %lu bytes", (unsigned long)received,
+                 (unsigned long)offer.size);
         ok = false;
         break;
       }
@@ -167,7 +168,7 @@ static bool download(const UpdateOffer &offer) {
     }
     lastDataMs = millis();
     if (Update.write(chunk, got) != got) {
-      Serial.printf("[ota] write failed: %s\n", Update.errorString());
+      logEvent("ota", "write failed: %s", Update.errorString());
       ok = false;
       break;
     }
@@ -186,13 +187,13 @@ static bool download(const UpdateOffer &offer) {
   char hex[SHA256_HEX_LENGTH + 1];
   sha256Hex(digest, hex);
   if (strcmp(hex, offer.sha256) != 0) {
-    Serial.println("[ota] sha256 does not match the release: not installed");
+    logEvent("ota", "sha256 does not match the release: not installed");
     Update.abort();
     return false;
   }
   // Checks the image and sets it as the next boot.
   if (!Update.end()) {
-    Serial.printf("[ota] not installed: %s\n", Update.errorString());
+    logEvent("ota", "not installed: %s", Update.errorString());
     return false;
   }
   return true;
@@ -200,8 +201,8 @@ static bool download(const UpdateOffer &offer) {
 
 void otaLoop() {
   if (verifying && millis() >= OTA_VERIFY_TIMEOUT_MS) {
-    Serial.printf("[ota] %s delivered no upload in %lu min: back to the previous firmware\n", FW_VERSION,
-                  (unsigned long)(OTA_VERIFY_TIMEOUT_MS / 60000));
+    logEvent("ota", "%s delivered no upload in %lu min: back to the previous firmware", FW_VERSION,
+             (unsigned long)(OTA_VERIFY_TIMEOUT_MS / 60000));
     Serial.flush();
     // The previous firmware finds "installed" still set to this version and marks it failed.
     esp_ota_mark_app_invalid_rollback_and_reboot();
@@ -213,14 +214,14 @@ void otaLoop() {
   }
   hasAccepted = false;
 
-  Serial.printf("[ota] installing %s (%lu bytes), readings pause meanwhile\n", accepted.version,
-                (unsigned long)accepted.size);
+  logEvent("ota", "installing %s (%lu bytes), readings pause meanwhile", accepted.version,
+           (unsigned long)accepted.size);
   uint32_t startMs = millis();
   if (!download(accepted)) {
     strlcpy(lastAttempt, accepted.version, sizeof(lastAttempt));
     lastAttemptMs = millis();
-    Serial.printf("[ota] %s will be tried again in %lu min\n", accepted.version,
-                  (unsigned long)(OTA_RETRY_AFTER_MS / 60000));
+    logEvent("ota", "%s will be tried again in %lu min", accepted.version,
+             (unsigned long)(OTA_RETRY_AFTER_MS / 60000));
     return;
   }
 
@@ -228,8 +229,8 @@ void otaLoop() {
   prefs.begin(NAMESPACE, false);
   prefs.putString(KEY_INSTALLED, accepted.version);
   prefs.end();
-  Serial.printf("[ota] %s installed in %lu s, restarting\n", accepted.version,
-                (unsigned long)((millis() - startMs) / 1000));
+  logEvent("ota", "%s installed in %lu s, restarting", accepted.version,
+           (unsigned long)((millis() - startMs) / 1000));
   Serial.flush();
   ESP.restart();
 }

@@ -4,6 +4,7 @@
 #include <station_setup.h>
 
 #include "config.h"
+#include "diagnostics/events.h"
 #include "net/station_settings.h"
 #include "net/wifi_connection.h"
 
@@ -35,10 +36,10 @@ static const char *reasonName(PortalReason reason) {
 static void onSaveParams() {
   if (stationSettingsSave(idParam.getValue(), keyParam.getValue())) {
     // Restart once the new WiFi connects: settings are only read at boot.
-    Serial.println("[setup] settings saved, restarting when WiFi connects");
+    logEvent("setup", "settings saved, restarting when WiFi connects");
     settingsSaved = true;
   } else {
-    Serial.println("[setup] device id or key not valid, nothing saved");
+    logEvent("setup", "device id or key not valid, nothing saved");
   }
 }
 
@@ -80,7 +81,7 @@ static void pollButton() {
 }
 
 static void closePortal() {
-  Serial.println("[setup] closing the setup portal, trying the saved WiFi");
+  logEvent("setup", "closing the setup portal, trying the saved WiFi");
   portal.stopConfigPortal();
   openFor = PortalReason::None;
   wifiRestart();
@@ -99,7 +100,7 @@ void setupPortalLoop() {
       restartAtMs = millis() + 2000;  // time for the page to answer
     }
     if (restartAtMs != 0 && (int32_t)(millis() - restartAtMs) >= 0) {
-      Serial.println("[setup] restarting with the new settings");
+      logEvent("setup", "restarting with the new settings");
       ESP.restart();
     }
     if (!settingsSaved && portalShouldClose(openFor, millis() - openedAtMs)) {
@@ -114,7 +115,7 @@ void setupPortalLoop() {
   if (reason == PortalReason::None) {
     return;
   }
-  Serial.printf("[setup] opening the setup portal (%s): join the WiFi network \"%s\"\n", reasonName(reason), apName);
+  logEvent("setup", "opening the setup portal (%s): join the WiFi network \"%s\"", reasonName(reason), apName);
   openFor = reason;
   openedAtMs = millis();
   portal.startConfigPortal(apName);

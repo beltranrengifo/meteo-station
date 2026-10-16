@@ -98,3 +98,10 @@
 - Result: OK. Supabase has no readings from 11:25 to 11:34 (Madrid time): 0.3.2 installed and delivered nothing. At 11:35 readings came back from 0.3.1. With the target still 0.3.2, the board kept running 0.3.1 and uploading every minute, so it did not install the failed version again.
 - Problems and fix: none. The 10 readings taken by 0.3.2 were lost (expected: the server rejected them).
 - config.h changes: none kept (0.3.2 only for the test build).
+
+## 2026-10-16 — Test: remote log over OTA (meteo-82d, meteo-kq1, meteo-6hf)
+- Goal: read a station's health and events without a USB cable.
+- Setup: migration `20261016120000_station_health_events.sql` and the new `ingest` deployed first, then fw 0.4.0 (bench build) sent over the air with `pnpm firmware publish bench` and `pnpm firmware target`.
+- Result: OK. `pnpm station logs meteo-station-bench 1` showed the boot (reset: restart by the firmware), the OTA verification, WiFi connected (RSSI -65 dBm) and "0.4.0 delivered its first upload: kept". Health in the newest reading: free heap 127 KB, 0 WiFi drops since boot. No reading lost during the update.
+- Problems and fix: events logged in the same second came out of order; `pnpm station logs` now sorts ties by insert order.
+- config.h changes: `FW_VERSION` 0.4.0.

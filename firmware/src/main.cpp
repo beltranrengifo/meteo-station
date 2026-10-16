@@ -3,6 +3,7 @@
 #include <reading.h>
 
 #include "config.h"
+#include "diagnostics/events.h"
 #include "diagnostics/live_log.h"
 #include "diagnostics/self_check.h"
 #include "net/ota_update.h"
@@ -44,6 +45,8 @@ static void emitReading(time_t ts) {
   reading.rainMm = rain.mm;
   reading.rssi = wifiIsConnected() ? wifiRssi() : RSSI_UNKNOWN;
   reading.uptimeS = millis() / 1000;
+  reading.freeHeap = ESP.getFreeHeap();
+  reading.wifiDisconnects = wifiDisconnects();
   reading.fw = FW_VERSION;
 
   char json[400];
@@ -68,6 +71,7 @@ void setup() {
   esp_task_wdt_add(nullptr);
 
   pinMode(PIN_STATUS_LED, OUTPUT);
+  logBootEvent();
   otaBegin();
   stationSettingsBegin();
   wifiBegin();
@@ -89,6 +93,7 @@ void loop() {
   if (!setupPortalIsOpen()) {
     wifiLoop();
   }
+  wifiWatch();
   setupPortalLoop();
   timeLoop();
   windVaneTick();

@@ -20,7 +20,9 @@ static StationReading sampleReading() {
   r.rainMm = 0.2794f;
   r.rssi = -67;
   r.uptimeS = 86400;
-  r.fw = "0.1.0";
+  r.freeHeap = 151200;
+  r.wifiDisconnects = 2;
+  r.fw = "0.4.0";
   return r;
 }
 
@@ -53,7 +55,8 @@ void test_json_matches_the_payload_format() {
       "{\"device_id\":\"meteo-station-1\",\"ts\":\"2026-10-20T10:15:00Z\","
       "\"temp_c\":18.4,\"humidity_pct\":62.1,\"pressure_hpa\":1016.3,"
       "\"wind_avg_ms\":2.10,\"wind_gust_ms\":4.60,\"wind_dir_deg\":225,"
-      "\"rain_mm\":0.2794,\"rssi\":-67,\"uptime_s\":86400,\"fw\":\"0.1.0\"}";
+      "\"rain_mm\":0.2794,\"rssi\":-67,\"uptime_s\":86400,\"free_heap\":151200,"
+      "\"wifi_disconnects\":2,\"fw\":\"0.4.0\"}";
   TEST_ASSERT_EQUAL_STRING(expected, out);
   TEST_ASSERT_EQUAL_INT((int)strlen(expected), written);
 }

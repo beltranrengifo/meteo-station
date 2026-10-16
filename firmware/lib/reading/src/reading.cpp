@@ -72,7 +72,9 @@ int formatReadingJson(const StationReading &reading, char *out, size_t size) {
   } else {
     json.append("\"rssi\":%d,", reading.rssi);
   }
-  json.append("\"uptime_s\":%lu,\"fw\":\"%s\"}", (unsigned long)reading.uptimeS, reading.fw);
+  json.append("\"uptime_s\":%lu,\"free_heap\":%lu,\"wifi_disconnects\":%lu,\"fw\":\"%s\"}",
+              (unsigned long)reading.uptimeS, (unsigned long)reading.freeHeap,
+              (unsigned long)reading.wifiDisconnects, reading.fw);
 
   if (json.overflow) {
     out[0] = '\0';

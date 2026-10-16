@@ -7,8 +7,10 @@
 #include <upload_policy.h>
 
 #include "config.h"
+#include "diagnostics/events.h"
 #include "net/ota_update.h"
 #include "net/station_settings.h"
+#include "net/time_sync.h"
 #include "net/wifi_connection.h"
 #include "root_ca.h"
 #include "secrets.h"
@@ -17,7 +19,10 @@
 static constexpr int FALLBACK_CAPACITY = 360;
 
 static ReadingBuffer *buffer = nullptr;
-static char batchJson[UPLOAD_BATCH_MAX * 300];
+// {"readings":[...],"events":[...]}: up to about 330 characters per reading (a 64-character
+// device id) and 200 per event.
+static char body[UPLOAD_BATCH_MAX * 360 + EVENT_LOG_CAPACITY * 200 + 64];
+static int failuresInRow = 0;
 static uint32_t backoffMs = 0;
 static uint32_t nextAttemptMs = 0;
 static uint32_t lastDropped = 0;
@@ -83,33 +88,62 @@ void uploaderLoop() {
     return;
   }
 
+  EventLog &events = eventLog();
+  uint32_t lost = events.takeDropped();
+  if (lost > 0) {
+    logEvent("log", "%lu older events lost: the log was full", (unsigned long)lost);
+  }
+
   int count = buffer->size() < UPLOAD_BATCH_MAX ? buffer->size() : UPLOAD_BATCH_MAX;
-  int length = formatBatchJson(*buffer, count, batchJson, sizeof(batchJson));
-  if (length < 0) {
-    Serial.println("[upload] batch JSON does not fit, dropping it");
+  int length = snprintf(body, sizeof(body), "{\"readings\":");
+  int written = formatBatchJson(*buffer, count, body + length, sizeof(body) - length);
+  if (written < 0) {
+    logEvent("upload", "batch JSON does not fit, %d readings dropped", count);
     buffer->popFront(count);
     return;
   }
+  length += written;
+  length += snprintf(body + length, sizeof(body) - length, ",\"events\":");
+  // Readings only exist with a valid clock, so events can be dated back from it.
+  int eventCount = timeIsValid() ? events.size() : 0;
+  written = formatEventsJson(events, eventCount, time(nullptr), millis(), body + length, sizeof(body) - length - 1);
+  if (written < 0) {
+    eventCount = 0;
+    written = snprintf(body + length, sizeof(body) - length, "[]");
+  }
+  length += written;
+  length += snprintf(body + length, sizeof(body) - length, "}");
 
-  String body;
-  int code = postBatch(batchJson, length, body);
+  String response;
+  int code = postBatch(body, length, response);
   switch (classifyResponse(code)) {
     case UploadOutcome::Delivered:
       buffer->popFront(count);
+      events.popFront(eventCount);
       backoffMs = 0;
       nextAttemptMs = millis();
-      Serial.printf("[upload] %d readings sent (HTTP %d), %d pending\n", count, code, buffer->size());
-      otaOnDelivered(body.c_str());
+      Serial.printf("[upload] %d readings and %d events sent (HTTP %d), %d pending\n", count, eventCount, code,
+                    buffer->size());
+      if (failuresInRow > 0) {
+        logEvent("upload", "back after %d failed attempts", failuresInRow);
+        failuresInRow = 0;
+      }
+      otaOnDelivered(response.c_str());
       break;
     case UploadOutcome::Rejected:
       buffer->popFront(count);
+      events.popFront(eventCount);
       backoffMs = 0;
       nextAttemptMs = millis();
-      Serial.printf("[upload] %d readings rejected by the server (HTTP %d), dropped\n", count, code);
+      logEvent("upload", "%d readings rejected by the server (HTTP %d), dropped", count, code);
       break;
     case UploadOutcome::Retry:
       backoffMs = nextBackoffMs(backoffMs);
       nextAttemptMs = millis() + backoffMs;
+      // Only the first failure in a row goes to the remote log; the rest only to serial.
+      if (failuresInRow++ == 0) {
+        logEvent("upload", "failing (%s %d), %d pending", code < 0 ? "error" : "HTTP", code, buffer->size());
+      }
       Serial.printf("[upload] failed (%s %d), retry in %lu s, %d pending\n", code < 0 ? "error" : "HTTP", code,
                     (unsigned long)(backoffMs / 1000), buffer->size());
       break;

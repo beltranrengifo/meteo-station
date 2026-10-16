@@ -20,6 +20,8 @@ struct StationReading {
   float rainMm;        // rain of this minute only, never a running total
   int rssi;            // RSSI_UNKNOWN without WiFi
   uint32_t uptimeS;
+  uint32_t freeHeap;         // bytes free when the reading was taken
+  uint32_t wifiDisconnects;  // WiFi drops since boot
   const char *fw;
 };
 

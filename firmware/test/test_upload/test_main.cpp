@@ -21,7 +21,9 @@ static StationReading readingAt(time_t ts) {
   r.rainMm = 0.0f;
   r.rssi = -67;
   r.uptimeS = 100;
-  r.fw = "0.1.0";
+  r.freeHeap = 151200;
+  r.wifiDisconnects = 0;
+  r.fw = "0.4.0";
   return r;
 }
 
