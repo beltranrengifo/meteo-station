@@ -2,7 +2,12 @@
 
 Pasos para añadir una estación nueva (por ejemplo, la de la casa del pueblo). Cada estación tiene su propia clave; si se pierde o roban una placa, se desactiva solo esa.
 
-Esta guía crece con el trabajo multi-estación: los pasos marcados como *pendiente* llegan con su bead.
+**En resumen:** eliges su identificador (1), creas su clave (2), la flasheas una vez por USB (3), le pones Wi-Fi, identificador y clave desde el móvil (4), le asignas versión de firmware (5), compruebas que sube datos (6) y la publicas en el dashboard (7). Desde el paso 4, todo se hace sin cable y desde cualquier sitio.
+
+**Antes de empezar** necesitas:
+
+- La placa montada y alimentada (cableado y fuente: [`estacion-meteo-spec.md`](estacion-meteo-spec.md), sección 4). Para los pasos 3 y 4 basta con el USB.
+- En el portátil: PlatformIO, `firmware/include/secrets.h` (copia de `secrets.example.h`, con la dirección de `ingest`) y `backend/.env.local` (paso 5).
 
 ## 1. Elegir el identificador
 
@@ -37,6 +42,8 @@ pio run -e station -t upload
 
 Este primer flasheo por USB también pone la tabla de particiones con sitio para las actualizaciones por internet. A partir de aquí, las versiones nuevas llegan solas (paso 5).
 
+Abre el monitor serie (`pio device monitor`): la placa arranca sin configurar y dice `[setup] opening the setup portal (station not set up): join the WiFi network "meteo-setup-XXXX"`.
+
 ## 4. Configurar el Wi-Fi, el identificador y la clave desde el móvil o el portátil
 
 Una placa sin configurar abre su propia red Wi-Fi, `meteo-setup-XXXX` (las cuatro letras cambian de una placa a otra). El monitor serie dice cuál es. Sirve cualquier dispositivo con Wi-Fi y navegador; con el portátil puedes pegar la clave en vez de teclearla.
@@ -61,6 +68,8 @@ La red `meteo-setup-XXXX` no tiene contraseña: mientras está abierta, cualquie
 ## 5. Elegir su versión de firmware
 
 Cada estación tiene una versión objetivo (`devices.target_fw`). Si la que lleva es otra, en su siguiente subida la función `ingest` le contesta con un enlace temporal (10 min) para descargar la nueva y su huella SHA-256. Vacía: la estación se queda con la que tiene.
+
+Una estación recién flasheada lleva el `FW_VERSION` de tu copia del repo. Para que siga a las demás, ponle de objetivo la última versión publicada (`pnpm firmware status` dice cuál llevan las otras): `pnpm firmware target meteo-station-pueblo <versión>`.
 
 **Una vez**, crea `backend/.env.local` (git lo ignora) con la URL y la clave secreta de Supabase (*Project Settings → API Keys*, la `sb_secret_...`):
 
@@ -126,20 +135,36 @@ Una estación nueva no sale en el dashboard hasta que la marcas. Así puedes mon
 1. **Su nombre público y la marca**, en Supabase → *SQL Editor*. El nombre es lo que se ve en el selector y en el saludo (se usa lo que va tras la última coma: «Buenos días, Las Rozas»). Pon solo el pueblo, nunca la dirección:
 
    ```sql
-   update public.devices set display_name = 'Madrid, Las Rozas', listed = true
-   where device_id = 'meteo-station-1';
+   update public.devices set display_name = 'Provincia, Pueblo', listed = true
+   where device_id = 'meteo-station-pueblo';
    ```
 
 2. **Sus coordenadas, para el cielo y el UV**, en Vercel → *Settings → Environment Variables* → `STATION_COORDINATES` (Production y Preview). Es un JSON con todas las estaciones; añade la nueva y guarda:
 
    ```json
-   {"meteo-station-1": [40.0, -3.0], "meteo-station-2": [41.0, -4.0]}
+   {"meteo-station-bench": [40.0, -3.0], "meteo-station-pueblo": [41.0, -4.0]}
    ```
 
    Las coordenadas solo viven ahí: ni en git ni en Supabase, y la API nunca las devuelve. Después redespliega (*Deployments* → el último → *Redeploy*) para que la API las lea. Sin coordenadas, la estación sale igual, pero sin cielo.
 
-3. En menos de un minuto aparece en el selector junto al lugar, arriba del todo. Con una sola estación publicada no hay selector. El primer día con datos es el de su primera lectura; el dashboard no ofrece fechas anteriores.
+3. En menos de un minuto aparece en el selector *Estación* de la barra superior. Con una sola estación publicada no hay selector. El primer día con datos es el de su primera lectura; el dashboard no ofrece fechas anteriores.
+
+Una vez tiene `display_name`, puedes ponerla y quitarla del dashboard sin SQL: `pnpm station show <device_id>` y `pnpm station hide <device_id>`.
 
 La estación con la que abre el dashboard es `STATION_DEVICE_ID` (Vercel). Cada estación tiene su propio enlace: `?station=<device_id>`.
 
-Para quitarla del dashboard sin borrar nada: `update public.devices set listed = false where device_id = '...';`.
+## Retirar una estación
+
+- **Quitarla del dashboard** sin borrar nada: `pnpm station hide <device_id>`.
+- **Dejar de aceptar sus datos** (placa perdida o robada): `update public.devices set active = false where device_id = '...';`. Su clave deja de valer al momento; sus lecturas se quedan.
+- Quita también su entrada de `STATION_COORDINATES` en Vercel.
+
+## Estación de pruebas
+
+`meteo-station-test` («Pueblo (pruebas)») no es una placa: sirve para probar el dashboard con varias estaciones. Su clave va en `backend/.env.local` como `FAKE_STATION_KEY`.
+
+```sh
+pnpm station fake meteo-station-test
+```
+
+Al arrancar la publica en el dashboard, manda las últimas 24 h de datos inventados y luego una lectura por minuto. Al pararlo con Ctrl+C la quita del dashboard. Si cierras la terminal sin Ctrl+C, quítala con `pnpm station hide meteo-station-test`.
