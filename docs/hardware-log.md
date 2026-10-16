@@ -91,3 +91,10 @@
 - Problems and fix: `target` first failed with "permission denied for table devices": the secret key could only read `devices`. Migration `20261016100000_devices_target_update.sql` grants update on `target_fw` only.
 - Not tried yet: rollback (a version that cannot upload).
 - config.h changes: `FW_VERSION` 0.3.0, then 0.3.1 for the published build.
+
+## 2026-10-16 — Test: OTA rollback (meteo-pto)
+- Goal: a published firmware that cannot upload must roll back on its own and never be installed again.
+- Setup: bench board on 0.3.1. Published 0.3.2 built with a wrong `INGEST_URL` path (so every upload fails), then `pnpm firmware target meteo-station-bench 0.3.2`.
+- Result: OK. Supabase has no readings from 11:25 to 11:34 (Madrid time): 0.3.2 installed and delivered nothing. At 11:35 readings came back from 0.3.1. With the target still 0.3.2, the board kept running 0.3.1 and uploading every minute, so it did not install the failed version again.
+- Problems and fix: none. The 10 readings taken by 0.3.2 were lost (expected: the server rejected them).
+- config.h changes: none kept (0.3.2 only for the test build).
