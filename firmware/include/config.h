@@ -5,7 +5,7 @@
 // ---- Device ----
 // Device id, key and WiFi are not compiled in: each station keeps its own in NVS, set with the
 // setup portal (src/net/setup_portal.h). The same build runs on every station.
-#define FW_VERSION "0.2.0"
+#define FW_VERSION "0.3.1"
 
 // ---- Pins (validated on the bench) ----
 constexpr int PIN_I2C_SDA = 21;

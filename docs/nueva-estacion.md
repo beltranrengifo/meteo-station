@@ -62,21 +62,42 @@ La red `meteo-setup-XXXX` no tiene contraseña: mientras está abierta, cualquie
 
 Cada estación tiene una versión objetivo (`devices.target_fw`). Si la que lleva es otra, en su siguiente subida la función `ingest` le contesta con un enlace temporal (10 min) para descargar la nueva y su huella SHA-256. Vacía: la estación se queda con la que tiene.
 
-Para publicar una versión, sube `FW_VERSION` en `firmware/include/config.h`, compila y, desde la raíz del repo:
+**Una vez**, crea `backend/.env.local` (git lo ignora) con la URL y la clave secreta de Supabase (*Project Settings → API Keys*, la `sb_secret_...`):
 
 ```sh
-pnpm publish:firmware firmware/.pio/build/station/firmware.bin "qué cambia"
+SUPABASE_URL=https://<ref>.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
 ```
 
-El script comprueba que el archivo es un firmware de ESP32, que cabe en la partición y que lleva dentro esa versión; lo sube al bucket privado `firmware` y lo apunta en `firmware_releases`. Necesita `frontend/.env.local` (`vercel env pull`). Una versión publicada no se sobrescribe: para corregirla, sube otra.
+Para publicar una versión nueva, sube `FW_VERSION` en `firmware/include/config.h` (por ejemplo de `0.3.0` a `0.3.1`) y, desde la raíz del repo:
 
-Después, estación por estación (primero la de la mesa), en Supabase → *SQL Editor*:
-
-```sql
-update public.devices set target_fw = '0.2.0' where device_id = 'meteo-station-bench';
+```sh
+pnpm firmware publish bench "qué cambia"     # o station
+pnpm firmware target meteo-station-bench 0.3.1
+pnpm firmware status
 ```
 
-*Que la placa descargue e instale la actualización: pendiente (meteo-pto).*
+- `publish` compila ese entorno con PlatformIO, comprueba que es un firmware de ESP32, que cabe y que lleva dentro esa versión, y lo sube al bucket privado `firmware`. Una versión publicada no se sobrescribe: para corregirla, sube otra.
+- `target` le dice a una estación qué versión debe llevar (primero la de la mesa). `none` la deja con la que tenga.
+- `status` muestra, por estación, la versión con la que llegó su última lectura y la que tiene como objetivo.
+
+Cada versión publicada es una sola compilación: si publicas `bench`, la estación de fuera también tendría la línea `[live]` cada 10 s, y si publicas `station`, la de la mesa la pierde.
+
+En su siguiente subida (como mucho, un minuto) la placa descarga la versión, comprueba su tamaño y su SHA-256 y se reinicia con ella. Mientras descarga deja de medir unos segundos. En el monitor serie (tamaños y tiempos cambian):
+
+```
+[ota] installing 0.3.1 (1093353 bytes), readings pause meanwhile
+[ota] 0.3.1 installed in 12 s, restarting
+meteo station fw 0.3.1
+[ota] first boot of 0.3.1: kept after its first upload, else back to the previous firmware in 10 min
+[ota] 0.3.1 delivered its first upload: kept
+```
+
+**Si la versión nueva falla**, la placa vuelve sola a la anterior: si no consigue subir una lectura en 10 minutos, o si se reinicia antes de lograrlo (un cuelgue, el vigilante o un corte de luz). Esa versión queda apuntada como fallida y la placa no la vuelve a instalar aunque se la sigan ofreciendo (`[ota] 0.3.1 offered, skipped: it rolled back before`). Para reintentarlo, corrige y publica otra versión.
+
+Si la descarga falla (red, enlace caducado, SHA-256 distinta), no se instala nada y la placa lo vuelve a intentar a la hora.
+
+En Supabase, la columna `fw` de `readings` dice con qué versión se tomó cada lectura.
 
 ## 6. Comprobar que llegan sus lecturas
 

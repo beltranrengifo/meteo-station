@@ -7,6 +7,7 @@
 #include <upload_policy.h>
 
 #include "config.h"
+#include "net/ota_update.h"
 #include "net/station_settings.h"
 #include "net/wifi_connection.h"
 #include "root_ca.h"
@@ -49,7 +50,8 @@ void uploaderEnqueue(const StationReading &reading) {
 
 int uploaderPending() { return buffer == nullptr ? 0 : buffer->size(); }
 
-static int postBatch(const char *json, int length) {
+// Returns the HTTP code (negative: no response) and fills `body` with the response.
+static int postBatch(const char *json, int length, String &body) {
   // Every wait is bounded well below the watchdog: TLS handshake would default to 120 s.
   WiFiClientSecure client;
   client.setCACert(ROOT_CA_PEM);
@@ -63,8 +65,11 @@ static int postBatch(const char *json, int length) {
   http.addHeader("content-type", "application/json");
   http.addHeader("x-device-key", stationDeviceKey());
   int code = http.POST((uint8_t *)json, length);
+  if (code > 0) {
+    body = http.getString();
+  }
   if (code > 0 && code != 200) {
-    Serial.printf("[upload] response: %s\n", http.getString().c_str());
+    Serial.printf("[upload] response: %s\n", body.c_str());
   }
   http.end();
   return code;
@@ -86,13 +91,15 @@ void uploaderLoop() {
     return;
   }
 
-  int code = postBatch(batchJson, length);
+  String body;
+  int code = postBatch(batchJson, length, body);
   switch (classifyResponse(code)) {
     case UploadOutcome::Delivered:
       buffer->popFront(count);
       backoffMs = 0;
       nextAttemptMs = millis();
       Serial.printf("[upload] %d readings sent (HTTP %d), %d pending\n", count, code, buffer->size());
+      otaOnDelivered(body.c_str());
       break;
     case UploadOutcome::Rejected:
       buffer->popFront(count);

@@ -83,3 +83,11 @@
 - Problems and fix: the first save had a mistyped WiFi password (`reason 15`, 4-way handshake timeout). WiFiManager then blocked `loop()` for the core's 60 s connect wait and the 60 s task watchdog rebooted the board. Fix: `setSaveConnectTimeout(PORTAL_SAVE_CONNECT_TIMEOUT_S)` (20 s), and `reason 15` now prints "wrong password?". Reopened the portal with `w` on the serial monitor and left the key empty to keep the saved one.
 - Not tried yet: BOOT button held 3 s, and the portal opening by itself after 10 min without WiFi.
 - config.h changes: `FW_VERSION` 0.2.0, `PIN_SETUP_BUTTON`, `SETUP_BUTTON_HOLD_MS`, `PORTAL_SAVE_CONNECT_TIMEOUT_S`; `DEVICE_ID` build flag removed.
+
+## 2026-10-16 — Test: OTA update over the internet (meteo-pto)
+- Goal: install a published firmware from Supabase Storage without USB.
+- Setup: bench board on USB (power and serial log only), fw 0.3.0 flashed by USB. Published the bench build of 0.3.1 with `pnpm firmware publish bench` and set it with `pnpm firmware target meteo-station-bench 0.3.1`.
+- Result: OK. After its next upload the board downloaded 0.3.1, checked size and SHA-256, rebooted into it and kept it after its first delivered upload.
+- Problems and fix: `target` first failed with "permission denied for table devices": the secret key could only read `devices`. Migration `20261016100000_devices_target_update.sql` grants update on `target_fw` only.
+- Not tried yet: rollback (a version that cannot upload).
+- config.h changes: `FW_VERSION` 0.3.0, then 0.3.1 for the published build.

@@ -5,6 +5,7 @@
 #include "config.h"
 #include "diagnostics/live_log.h"
 #include "diagnostics/self_check.h"
+#include "net/ota_update.h"
 #include "net/setup_portal.h"
 #include "net/station_settings.h"
 #include "net/time_sync.h"
@@ -67,6 +68,7 @@ void setup() {
   esp_task_wdt_add(nullptr);
 
   pinMode(PIN_STATUS_LED, OUTPUT);
+  otaBegin();
   stationSettingsBegin();
   wifiBegin();
   setupPortalBegin();
@@ -93,6 +95,7 @@ void loop() {
   selfCheckPollSerial();
   liveLogLoop();  // bench env only, no-op on the station
   uploaderLoop();
+  otaLoop();
 
   // LED: solid when connected, blinking while not.
   bool led = wifiIsConnected() || (millis() / 250) % 2 == 0;
