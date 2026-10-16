@@ -119,15 +119,9 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <Header lastTs={lastTs} place={station.name} />
+      <Header lastTs={lastTs} station={station} stations={stations.data!.stations} onStationChange={pickStation} />
       <div className="content">
-        <Hero
-          reading={reading}
-          sky={sky.data}
-          station={station}
-          stations={stations.data!.stations}
-          onStationChange={pickStation}
-        />
+        <Hero reading={reading} sky={sky.data} place={station.name} />
         {now.isError && <p role="alert" className="chart-status">No se pudieron cargar los datos actuales.</p>}
         <CurrentConditions reading={reading} today={todaySeries} last24h={last24h.data?.readings} />
         <RangeCharts

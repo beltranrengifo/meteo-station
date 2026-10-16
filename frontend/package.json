@@ -10,6 +10,7 @@
     "gen:types": "cd ../backend && supabase gen types typescript --linked --schema public > ../frontend/shared/database.types.ts"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.4.1",
     "@supabase/supabase-js": "^2.117.3",
     "@tanstack/react-query": "^5.104.1",
     "date-fns": "^4.4.0",
