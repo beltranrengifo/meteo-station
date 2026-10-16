@@ -6,11 +6,12 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { PageLoading } from './components/Loading';
 import { RangeCharts } from './components/RangeCharts';
-import { useDay, useLast24h, useLast7Days, useNow, useRange, useSky } from './lib/api';
+import { useDay, useLast24h, useLast7Days, useNow, useRange, useSky, useStations } from './lib/api';
 import { customRangeProblem, daysRange, lastDaysRange, type CustomRange } from './lib/custom-range';
 import { TIME_ZONE, madridToday } from './lib/format';
 import type { RangeResponse } from '../shared/api-types';
 import { fromHours, fromReadings, lastHours, sliceSeries, type RangeKey, type RangeSeries } from './lib/series';
+import { chooseStation, setStationInUrl, stationFromUrl } from './lib/station';
 
 function rangeSeries(data: RangeResponse | undefined): RangeSeries | undefined {
   if (!data) {
@@ -26,24 +27,31 @@ function initialCustomRange(): CustomRange {
 }
 
 export function App() {
+  const stations = useStations();
+  const [wanted, setWanted] = useState(stationFromUrl);
+  const station = stations.data && chooseStation(stations.data, wanted);
+  const stationId = station?.id;
   const [range, setRange] = useState<RangeKey>('last24h');
   const [custom, setCustom] = useState(initialCustomRange);
   // A dragged stretch, cut from the data already shown, until its own data arrives.
   const [preview, setPreview] = useState<RangeSeries>();
   const today = madridToday();
-  const now = useNow();
-  const day = useDay(today, true);
-  const last24h = useLast24h();
-  const last7Days = useLast7Days(range === 'last7days');
+  const now = useNow(stationId);
+  const day = useDay(stationId, today, true);
+  const last24h = useLast24h(stationId);
+  const last7Days = useLast7Days(stationId, range === 'last7days');
   const installDate = now.data?.installDate;
   const customQuery = useRange(
+    stationId,
     custom.from,
     custom.to,
     range === 'custom' && customRangeProblem(custom, installDate) === null,
   );
   const last30 = lastDaysRange(30, today, installDate);
-  const last30Days = useRange(last30.from, last30.to, range === 'last30days' && installDate !== undefined, true);
-  const sky = useSky();
+  const last30Days = useRange(
+    stationId, last30.from, last30.to, range === 'last30days' && installDate !== undefined, true,
+  );
+  const sky = useSky(stationId);
 
   // Today: from 00:00 Madrid to when the data was fetched (/api/day returns no bounds).
   const todaySeries = useMemo(() => {
@@ -80,11 +88,23 @@ export function App() {
     },
   }[range];
 
-  // First load only: wait for the latest reading and today's data, which fill most of the page.
-  // Later (a new day at midnight), the page stays and only the parts still loading show it.
-  const loadedOnce = useRef(false);
-  loadedOnce.current ||= !now.isPending && !day.isPending;
-  if (!loadedOnce.current) {
+  // First load of each station: wait for the latest reading and today's data, which fill most
+  // of the page. Later (a new day at midnight), the page stays and only the parts still loading
+  // show it. Switching stations never shows one station's numbers under another's name.
+  const loadedFor = useRef<string | undefined>(undefined);
+  if (stationId !== undefined && !now.isPending && !day.isPending) {
+    loadedFor.current = stationId;
+  }
+  if (stations.isError || (stations.data && !station)) {
+    return (
+      <main className="app-shell">
+        <p role="alert" className="chart-status">
+          {stations.isError ? 'No se pudo cargar la lista de estaciones.' : 'Todavía no hay ninguna estación publicada.'}
+        </p>
+      </main>
+    );
+  }
+  if (!station || loadedFor.current !== station.id) {
     return (
       <main className="app-shell">
         <PageLoading />
@@ -92,11 +112,22 @@ export function App() {
     );
   }
 
+  const pickStation = (id: string) => {
+    setWanted(id);
+    setStationInUrl(id);
+  };
+
   return (
     <main className="app-shell">
-      <Header lastTs={lastTs} />
+      <Header lastTs={lastTs} place={station.name} />
       <div className="content">
-        <Hero reading={reading} sky={sky.data} />
+        <Hero
+          reading={reading}
+          sky={sky.data}
+          station={station}
+          stations={stations.data!.stations}
+          onStationChange={pickStation}
+        />
         {now.isError && <p role="alert" className="chart-status">No se pudieron cargar los datos actuales.</p>}
         <CurrentConditions reading={reading} today={todaySeries} last24h={last24h.data?.readings} />
         <RangeCharts

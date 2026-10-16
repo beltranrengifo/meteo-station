@@ -1,9 +1,9 @@
 // GET /api/month?month=YYYY-MM: hourly and daily aggregates of that local (Madrid) month.
 import { Temporal } from 'temporal-polyfill';
 import type { MonthResponse } from '../shared/api-types.js';
-import { badRequest, json, serverError } from '../server/http.js';
+import { badRequest, json, notFound, serverError } from '../server/http.js';
 import { cachePolicy, localMidnight, parseMonth, rejectUnexpectedParams } from '../server/params.js';
-import { fetchAll, station } from '../server/supabase.js';
+import { db, fetchAll, requestStation } from '../server/supabase.js';
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -13,7 +13,11 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const { db, deviceId, installDay } = station();
+    const station = await requestStation(url);
+    if (!station.ok) {
+      return notFound(station.error);
+    }
+    const { deviceId, installDay } = station.value;
     const now = Temporal.Now.instant();
     const parsed = parseMonth(url.searchParams.get('month')!, now, installDay);
     if (!parsed.ok) {
@@ -26,12 +30,12 @@ export async function GET(request: Request): Promise<Response> {
 
     const [hours, days] = await Promise.all([
       fetchAll((from, to) =>
-        db.from('readings_hourly').select('*').eq('device_id', deviceId)
+        db().from('readings_hourly').select('*').eq('device_id', deviceId)
           .gte('hour', localMidnight(first).toString()).lt('hour', localMidnight(next).toString())
           .order('hour').range(from, to),
       ),
       fetchAll((from, to) =>
-        db.from('readings_daily').select('*').eq('device_id', deviceId)
+        db().from('readings_daily').select('*').eq('device_id', deviceId)
           .gte('day', first.toString()).lt('day', next.toString()).order('day').range(from, to),
       ),
     ]);

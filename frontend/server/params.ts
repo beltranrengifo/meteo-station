@@ -39,10 +39,14 @@ export function last7DaysStart(now: Temporal.Instant): Temporal.Instant {
   return localMidnight(localToday(now).subtract({ days: 6 }));
 }
 
-// Null when the URL has exactly the expected params, each once; otherwise the error message.
-export function rejectUnexpectedParams(url: URL, expected: string[]): string | null {
+// Every endpoint takes an optional ?station=<device_id> (the default station without it).
+export const STATION_PARAM = 'station';
+
+// Null when the URL has exactly the expected params, each once, and the optional ones at most
+// once; otherwise the error message.
+export function rejectUnexpectedParams(url: URL, expected: string[], optional: string[] = [STATION_PARAM]): string | null {
   const keys = [...url.searchParams.keys()];
-  const unknown = keys.filter((key) => !expected.includes(key));
+  const unknown = keys.filter((key) => !expected.includes(key) && !optional.includes(key));
   if (unknown.length > 0) {
     return `unexpected parameter: ${unknown[0]}`;
   }
@@ -50,6 +54,11 @@ export function rejectUnexpectedParams(url: URL, expected: string[]): string | n
     const count = keys.filter((k) => k === key).length;
     if (count !== 1) {
       return count === 0 ? `missing parameter: ${key}` : `repeated parameter: ${key}`;
+    }
+  }
+  for (const key of optional) {
+    if (keys.filter((k) => k === key).length > 1) {
+      return `repeated parameter: ${key}`;
     }
   }
   return null;

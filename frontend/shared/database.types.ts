@@ -69,7 +69,9 @@ export type Database = {
           active: boolean
           created_at: string
           device_id: string
+          display_name: string | null
           key_sha256: string
+          listed: boolean
           name: string
           target_fw: string | null
         }
@@ -77,7 +79,9 @@ export type Database = {
           active?: boolean
           created_at?: string
           device_id: string
+          display_name?: string | null
           key_sha256: string
+          listed?: boolean
           name: string
           target_fw?: string | null
         }
@@ -85,7 +89,9 @@ export type Database = {
           active?: boolean
           created_at?: string
           device_id?: string
+          display_name?: string | null
           key_sha256?: string
+          listed?: boolean
           name?: string
           target_fw?: string | null
         }

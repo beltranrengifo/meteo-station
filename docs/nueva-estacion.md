@@ -119,4 +119,27 @@ Muestra su última lectura (versión, tiempo encendida, señal Wi-Fi, memoria li
 
 Los eventos (arranques y su motivo, pasos de la OTA, Wi-Fi caído y recuperado, fallos de subida, portal de configuración) viajan con la siguiente subida, así que llegan con hasta un minuto de retraso, o cuando vuelve el Wi-Fi. Los que no llegaron a subirse antes de un reinicio se pierden; el evento `boot` dice por qué se reinició (`power on` es un corte de luz, `task watchdog` un cuelgue, `brownout` una fuente que no da suficiente).
 
-*En el dashboard, con el selector de estación: pendiente (meteo-1wd).*
+## 7. Publicarla en el dashboard
+
+Una estación nueva no sale en el dashboard hasta que la marcas. Así puedes montarla y probarla antes de que nadie la vea.
+
+1. **Su nombre público y la marca**, en Supabase → *SQL Editor*. El nombre es lo que se ve en el selector y en el saludo (se usa lo que va tras la última coma: «Buenos días, Las Rozas»). Pon solo el pueblo, nunca la dirección:
+
+   ```sql
+   update public.devices set display_name = 'Madrid, Las Rozas', listed = true
+   where device_id = 'meteo-station-1';
+   ```
+
+2. **Sus coordenadas, para el cielo y el UV**, en Vercel → *Settings → Environment Variables* → `STATION_COORDINATES` (Production y Preview). Es un JSON con todas las estaciones; añade la nueva y guarda:
+
+   ```json
+   {"meteo-station-1": [40.0, -3.0], "meteo-station-2": [41.0, -4.0]}
+   ```
+
+   Las coordenadas solo viven ahí: ni en git ni en Supabase, y la API nunca las devuelve. Después redespliega (*Deployments* → el último → *Redeploy*) para que la API las lea. Sin coordenadas, la estación sale igual, pero sin cielo.
+
+3. En menos de un minuto aparece en el selector junto al lugar, arriba del todo. Con una sola estación publicada no hay selector. El primer día con datos es el de su primera lectura; el dashboard no ofrece fechas anteriores.
+
+La estación con la que abre el dashboard es `STATION_DEVICE_ID` (Vercel). Cada estación tiene su propio enlace: `?station=<device_id>`.
+
+Para quitarla del dashboard sin borrar nada: `update public.devices set listed = false where device_id = '...';`.

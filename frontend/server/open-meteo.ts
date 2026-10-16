@@ -2,8 +2,8 @@
 // The station measures neither, so they come from a weather model for the station's location.
 import { Temporal } from 'temporal-polyfill';
 import type { SkyResponse } from '../shared/api-types.js';
-import { requireEnv } from './env.js';
 import { TIME_ZONE } from './params.js';
+import type { Coordinates } from './station-choice.js';
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const TIMEOUT_MS = 5000;
@@ -14,10 +14,10 @@ export interface OpenMeteoForecast {
   daily: { time: string[]; uv_index_max: number[] };
 }
 
-export function forecastUrl(latitude: string, longitude: string): string {
+export function forecastUrl({ latitude, longitude }: Coordinates): string {
   const params = new URLSearchParams({
-    latitude,
-    longitude,
+    latitude: String(latitude),
+    longitude: String(longitude),
     current: 'weather_code,cloud_cover,is_day,uv_index',
     daily: 'uv_index_max',
     timezone: TIME_ZONE,
@@ -38,9 +38,10 @@ export function toSky(forecast: OpenMeteoForecast): SkyResponse {
   };
 }
 
-export async function fetchSky(): Promise<SkyResponse> {
-  // Coordinates only in env vars: the repository never holds the station's exact location.
-  const url = forecastUrl(requireEnv('STATION_LATITUDE'), requireEnv('STATION_LONGITUDE'));
+// Coordinates only come from env vars (STATION_COORDINATES): neither the repository nor the
+// database holds a station's exact location, and no response ever includes it.
+export async function fetchSky(coordinates: Coordinates): Promise<SkyResponse> {
+  const url = forecastUrl(coordinates);
   const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!response.ok) {
     throw new Error(`Open-Meteo: HTTP ${response.status}`);

@@ -13,6 +13,19 @@ export type ReadingRow = Pick<Tables<'readings'>, (typeof READING_FIELDS)[number
 export type HourlyRow = Tables<'readings_hourly'>;
 export type DailyRow = Tables<'readings_daily'>;
 
+// Every endpoint below takes an optional ?station=<device_id>; without it, the default station.
+
+// GET /api/stations: the stations the dashboard lists, oldest first.
+export interface StationInfo {
+  id: string;   // device_id
+  name: string; // public name, e.g. "Madrid, Las Rozas"
+}
+
+export interface StationsResponse {
+  stations: StationInfo[];
+  defaultId: string | null; // null only when no station is listed
+}
+
 // GET /api/now
 export interface NowResponse {
   reading: ReadingRow | null;

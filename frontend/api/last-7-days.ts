@@ -3,24 +3,29 @@
 // the stored aggregates can be up to 10 minutes behind.
 import { Temporal } from 'temporal-polyfill';
 import type { Last7DaysResponse } from '../shared/api-types.js';
-import { badRequest, json, serverError } from '../server/http.js';
+import { badRequest, json, notFound, serverError } from '../server/http.js';
 import { cachePolicy, last7DaysStart, localToday, rejectUnexpectedParams } from '../server/params.js';
-import { station } from '../server/supabase.js';
+import { db, requestStation } from '../server/supabase.js';
 
 export async function GET(request: Request): Promise<Response> {
-  const invalid = rejectUnexpectedParams(new URL(request.url), []);
+  const url = new URL(request.url);
+  const invalid = rejectUnexpectedParams(url, []);
   if (invalid) {
     return badRequest(invalid);
   }
 
   try {
-    const { db, deviceId } = station();
+    const station = await requestStation(url);
+    if (!station.ok) {
+      return notFound(station.error);
+    }
+    const { deviceId } = station.value;
     const now = Temporal.Now.instant();
     const from = last7DaysStart(now).toString();
     const to = now.toString();
 
     // At most 7 x 24 + 1 rows (one extra hour on the day summer time ends): one page is enough.
-    const { data, error } = await db.rpc('hourly_stats', { p_device_id: deviceId, p_from: from, p_to: to });
+    const { data, error } = await db().rpc('hourly_stats', { p_device_id: deviceId, p_from: from, p_to: to });
     if (error) {
       throw new Error(error.message);
     }

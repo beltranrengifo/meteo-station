@@ -3,7 +3,7 @@ import { forecastUrl, toSky } from './open-meteo.js';
 
 describe('forecastUrl', () => {
   it('asks for current sky and UV plus today\'s UV peak, in Madrid time', () => {
-    const url = new URL(forecastUrl('40.5', '-3.9'));
+    const url = new URL(forecastUrl({ latitude: 40.5, longitude: -3.9 }));
     expect(url.searchParams.get('latitude')).toBe('40.5');
     expect(url.searchParams.get('longitude')).toBe('-3.9');
     expect(url.searchParams.get('current')).toBe('weather_code,cloud_cover,is_day,uv_index');

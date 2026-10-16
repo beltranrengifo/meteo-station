@@ -2,9 +2,9 @@
 // plus the day's summary.
 import { Temporal } from 'temporal-polyfill';
 import type { DayResponse, ReadingRow } from '../shared/api-types.js';
-import { badRequest, json, serverError } from '../server/http.js';
+import { badRequest, json, notFound, serverError } from '../server/http.js';
 import { cachePolicy, localMidnight, parseDay, rejectUnexpectedParams } from '../server/params.js';
-import { READING_COLUMNS, fetchAll, station } from '../server/supabase.js';
+import { READING_COLUMNS, db, fetchAll, requestStation } from '../server/supabase.js';
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -14,7 +14,11 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const { db, deviceId, installDay } = station();
+    const station = await requestStation(url);
+    if (!station.ok) {
+      return notFound(station.error);
+    }
+    const { deviceId, installDay } = station.value;
     const now = Temporal.Now.instant();
     const date = parseDay(url.searchParams.get('date')!, now, installDay);
     if (!date.ok) {
@@ -26,11 +30,11 @@ export async function GET(request: Request): Promise<Response> {
 
     const [readings, summary] = await Promise.all([
       fetchAll((first, last) =>
-        db.from('readings').select(READING_COLUMNS).eq('device_id', deviceId)
+        db().from('readings').select(READING_COLUMNS).eq('device_id', deviceId)
           .gte('ts', from).lt('ts', to).order('ts').range(first, last)
           .overrideTypes<ReadingRow[], { merge: false }>(),
       ),
-      db.from('readings_daily').select('*').eq('device_id', deviceId).eq('day', day.toString()).maybeSingle(),
+      db().from('readings_daily').select('*').eq('device_id', deviceId).eq('day', day.toString()).maybeSingle(),
     ]);
     if (summary.error) {
       throw new Error(summary.error.message);

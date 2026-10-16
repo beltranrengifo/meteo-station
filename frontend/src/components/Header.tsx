@@ -1,4 +1,4 @@
-// Top bar: name, place, whether the station is sending, and a button to fetch again now.
+// Top bar: name, the station's place, whether it is sending, and a button to fetch again now.
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { CloudSun, RefreshCw } from 'lucide-react';
 import { useClock } from '../lib/clock';
@@ -6,9 +6,10 @@ import { isStale } from '../lib/format';
 
 interface HeaderProps {
   lastTs: string | null;
+  place: string;
 }
 
-export function Header({ lastTs }: HeaderProps) {
+export function Header({ lastTs, place }: HeaderProps) {
   const now = useClock();
   const queryClient = useQueryClient();
   const fetching = useIsFetching() > 0;
@@ -22,7 +23,7 @@ export function Header({ lastTs }: HeaderProps) {
         </div>
         <div>
           <strong>Meteo Station</strong>
-          <span>Estación doméstica · Madrid, Las Rozas</span>
+          <span>Estación doméstica · {place}</span>
         </div>
       </div>
       <div className="top-actions">

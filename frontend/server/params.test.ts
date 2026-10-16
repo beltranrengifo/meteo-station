@@ -66,6 +66,12 @@ describe('rejectUnexpectedParams', () => {
     expect(rejectUnexpectedParams(new URL('https://x/api/day'), ['date'])).not.toBeNull();
     expect(rejectUnexpectedParams(new URL('https://x/api/now?cachebust=1'), [])).not.toBeNull();
   });
+  it('accepts the station param at most once on any endpoint', () => {
+    expect(rejectUnexpectedParams(new URL('https://x/api/now?station=meteo-station-1'), [])).toBeNull();
+    expect(rejectUnexpectedParams(new URL('https://x/api/day?date=2026-10-10&station=a'), ['date'])).toBeNull();
+    expect(rejectUnexpectedParams(new URL('https://x/api/now?station=a&station=b'), [])).toBe('repeated parameter: station');
+    expect(rejectUnexpectedParams(new URL('https://x/api/stations?station=a'), [], [])).toBe('unexpected parameter: station');
+  });
 });
 
 describe('parseDay', () => {
