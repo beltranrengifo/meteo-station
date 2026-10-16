@@ -29,6 +29,41 @@ export type Database = {
         }
         Relationships: []
       }
+      device_events: {
+        Row: {
+          device_id: string
+          id: number
+          inserted_at: string
+          kind: string
+          message: string
+          ts: string
+        }
+        Insert: {
+          device_id: string
+          id?: never
+          inserted_at?: string
+          kind: string
+          message: string
+          ts: string
+        }
+        Update: {
+          device_id?: string
+          id?: never
+          inserted_at?: string
+          kind?: string
+          message?: string
+          ts?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           active: boolean
@@ -94,6 +129,7 @@ export type Database = {
       readings: {
         Row: {
           device_id: string
+          free_heap: number | null
           fw: string | null
           humidity_pct: number | null
           id: number
@@ -104,12 +140,14 @@ export type Database = {
           temp_c: number | null
           ts: string
           uptime_s: number | null
+          wifi_disconnects: number | null
           wind_avg_ms: number | null
           wind_dir_deg: number | null
           wind_gust_ms: number | null
         }
         Insert: {
           device_id: string
+          free_heap?: number | null
           fw?: string | null
           humidity_pct?: number | null
           id?: never
@@ -120,12 +158,14 @@ export type Database = {
           temp_c?: number | null
           ts: string
           uptime_s?: number | null
+          wifi_disconnects?: number | null
           wind_avg_ms?: number | null
           wind_dir_deg?: number | null
           wind_gust_ms?: number | null
         }
         Update: {
           device_id?: string
+          free_heap?: number | null
           fw?: string | null
           humidity_pct?: number | null
           id?: never
@@ -136,6 +176,7 @@ export type Database = {
           temp_c?: number | null
           ts?: string
           uptime_s?: number | null
+          wifi_disconnects?: number | null
           wind_avg_ms?: number | null
           wind_dir_deg?: number | null
           wind_gust_ms?: number | null

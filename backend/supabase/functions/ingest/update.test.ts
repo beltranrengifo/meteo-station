@@ -16,6 +16,8 @@ function row(ts: string, fw: string): ReadingRow {
     rssi: null,
     uptime_s: 60,
     fw,
+    free_heap: null,
+    wifi_disconnects: null,
   };
 }
 

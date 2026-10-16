@@ -2,9 +2,11 @@
 
 // Upper bound per request: the station buffer holds 24 h = 1440 readings.
 export const MAX_BATCH = 2000;
+// The station keeps far fewer events than this in RAM.
+export const MAX_EVENTS = 100;
 
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
+export const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+export const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
 const TS_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00Z$/;
 
 export type ReadingRow = {
@@ -20,6 +22,8 @@ export type ReadingRow = {
   rssi: number | null;
   uptime_s: number;
   fw: string;
+  free_heap: number | null;
+  wifi_disconnects: number | null;
 };
 
 export type ValidationResult = { ok: true; row: ReadingRow } | { ok: false; reason: string };
@@ -42,6 +46,9 @@ const NUMBER_FIELDS: Record<string, FieldRule> = {
   rain_mm: { required: true, integer: false, min: 0, max: 50 },
   rssi: { required: false, integer: true, min: -127, max: 0 },
   uptime_s: { required: true, integer: true, min: 0, max: Number.MAX_SAFE_INTEGER },
+  // Health, sent from firmware 0.4.0 on.
+  free_heap: { required: false, integer: true, min: 0, max: 10_000_000 },
+  wifi_disconnects: { required: false, integer: true, min: 0, max: 2_147_483_647 },
 };
 
 function checkNumber(name: string, value: unknown, rule: FieldRule): string | null {
@@ -109,15 +116,35 @@ export function validateReading(raw: unknown, now: Date, deviceId: string): Vali
     rssi: (r.rssi ?? null) as number | null,
     uptime_s: r.uptime_s as number,
     fw: r.fw,
+    free_heap: (r.free_heap ?? null) as number | null,
+    wifi_disconnects: (r.wifi_disconnects ?? null) as number | null,
   };
   return { ok: true, row };
 }
 
-export function parseBatch(body: unknown): { ok: true; items: unknown[] } | { ok: false; reason: string } {
-  const items = Array.isArray(body) ? body : [body];
-  if (items.length === 0) return { ok: false, reason: "empty batch" };
-  if (items.length > MAX_BATCH) return { ok: false, reason: `batch larger than ${MAX_BATCH}` };
-  return { ok: true, items };
+export type ParsedBody = { ok: true; readings: unknown[]; events: unknown[] } | { ok: false; reason: string };
+
+// Three shapes: one reading, an array of readings (firmware before 0.4.0), or
+// { readings: [...], events: [...] } with the station's events next to its readings.
+export function parseBody(body: unknown): ParsedBody {
+  let readings: unknown[];
+  let events: unknown[] = [];
+  if (Array.isArray(body)) {
+    readings = body;
+  } else if (typeof body === "object" && body !== null && Array.isArray((body as Record<string, unknown>).readings)) {
+    const envelope = body as Record<string, unknown>;
+    readings = envelope.readings as unknown[];
+    if (envelope.events !== undefined) {
+      if (!Array.isArray(envelope.events)) return { ok: false, reason: "events must be an array" };
+      events = envelope.events;
+    }
+  } else {
+    readings = [body];
+  }
+  if (readings.length === 0 && events.length === 0) return { ok: false, reason: "empty batch" };
+  if (readings.length > MAX_BATCH) return { ok: false, reason: `batch larger than ${MAX_BATCH}` };
+  if (events.length > MAX_EVENTS) return { ok: false, reason: `more than ${MAX_EVENTS} events` };
+  return { ok: true, readings, events };
 }
 
 // SHA-256 of a device key, as lowercase hex: what public.devices stores instead of the key.

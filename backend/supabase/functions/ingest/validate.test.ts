@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { keyHash, MAX_BATCH, parseBatch, validateReading } from "./validate.ts";
+import { keyHash, MAX_BATCH, MAX_EVENTS, parseBody, validateReading } from "./validate.ts";
 
 const NOW = new Date("2026-10-20T10:15:30Z");
 const DEVICE = "meteo-station-1";
@@ -17,7 +17,9 @@ function reading(overrides: Record<string, unknown> = {}): Record<string, unknow
     rain_mm: 0.2794,
     rssi: -67,
     uptime_s: 86400,
-    fw: "0.1.0",
+    fw: "0.4.0",
+    free_heap: 151200,
+    wifi_disconnects: 2,
     ...overrides,
   };
 }
@@ -40,6 +42,11 @@ Deno.test("accepts nulls where the station may have no data", () => {
     reasonOf(reading({ temp_c: null, humidity_pct: null, pressure_hpa: null, wind_dir_deg: null, rssi: null })),
     null,
   );
+});
+
+Deno.test("accepts readings without health, from firmware before 0.4.0", () => {
+  const result = validateReading(reading({ free_heap: undefined, wifi_disconnects: undefined }), NOW, DEVICE);
+  assertEquals(result.ok && [result.row.free_heap, result.row.wifi_disconnects], [null, null]);
 });
 
 Deno.test("drops unknown fields from the stored row", () => {
@@ -83,6 +90,8 @@ Deno.test("rejects values outside physical ranges", () => {
   assertEquals(reasonOf(reading({ wind_dir_deg: 360 })), "wind_dir_deg out of range");
   assertEquals(reasonOf(reading({ rain_mm: -0.1 })), "rain_mm out of range");
   assertEquals(reasonOf(reading({ rssi: 5 })), "rssi out of range");
+  assertEquals(reasonOf(reading({ free_heap: -1 })), "free_heap out of range");
+  assertEquals(reasonOf(reading({ wifi_disconnects: 1.5 })), "wifi_disconnects must be an integer or null");
 });
 
 Deno.test("rejects wrong types and missing required fields", () => {
@@ -96,12 +105,29 @@ Deno.test("rejects wrong types and missing required fields", () => {
 // ---- batch ----
 
 Deno.test("a single object is a batch of one", () => {
-  assertEquals(parseBatch(reading()), { ok: true, items: [reading()] });
+  assertEquals(parseBody(reading()), { ok: true, readings: [reading()], events: [] });
+});
+
+Deno.test("an array is a batch of readings without events", () => {
+  assertEquals(parseBody([reading(), reading()]), { ok: true, readings: [reading(), reading()], events: [] });
+});
+
+Deno.test("an envelope carries readings and events", () => {
+  const event = { ts: "2026-10-20T10:14:07Z", kind: "boot", message: "" };
+  assertEquals(parseBody({ readings: [reading()], events: [event] }), {
+    ok: true,
+    readings: [reading()],
+    events: [event],
+  });
+  assertEquals(parseBody({ readings: [reading()] }), { ok: true, readings: [reading()], events: [] });
 });
 
 Deno.test("rejects an empty or oversized batch", () => {
-  assertEquals(parseBatch([]).ok, false);
-  assertEquals(parseBatch(new Array(MAX_BATCH + 1).fill(reading())).ok, false);
+  assertEquals(parseBody([]).ok, false);
+  assertEquals(parseBody({ readings: [], events: [] }).ok, false);
+  assertEquals(parseBody(new Array(MAX_BATCH + 1).fill(reading())).ok, false);
+  assertEquals(parseBody({ readings: [reading()], events: new Array(MAX_EVENTS + 1).fill({}) }).ok, false);
+  assertEquals(parseBody({ readings: [reading()], events: "boot" }), { ok: false, reason: "events must be an array" });
 });
 
 // ---- device key ----

@@ -1,10 +1,12 @@
-// Ingest endpoint for the weather stations: POST one reading or an array of readings.
-// Auth: x-device-key header, each station its own key (public.devices). Invalid readings are
-// skipped and reported, so one bad reading never blocks a station from emptying its buffer.
+// Ingest endpoint for the weather stations: POST one reading, an array of readings, or
+// { readings, events } with the station's events (public.device_events, its remote log).
+// Auth: x-device-key header, each station its own key (public.devices). Invalid readings and
+// events are skipped and reported, so one bad item never blocks a station from emptying its buffer.
 // When a station runs another firmware than its target, the response offers the update.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { needsUpdate, runningFirmware, SIGNED_URL_TTL_S, type UpdateOffer } from "./update.ts";
-import { keyHash, parseBatch, type ReadingRow, validateReading } from "./validate.ts";
+import { type EventRow, validateEvent } from "./events.ts";
+import { keyHash, parseBody, type ReadingRow, validateReading } from "./validate.ts";
 
 // New-style secret key ("default" entry of SUPABASE_SECRET_KEYS), legacy service role as fallback.
 function secretKey(): string {
@@ -78,7 +80,7 @@ Deno.serve(async (req) => {
     return json({ error: "body is not valid JSON" }, 400);
   }
 
-  const batch = parseBatch(body);
+  const batch = parseBody(body);
   if (!batch.ok) {
     return json({ error: batch.reason }, 400);
   }
@@ -86,10 +88,17 @@ Deno.serve(async (req) => {
   const now = new Date();
   const rows: ReadingRow[] = [];
   const rejected: { index: number; reason: string }[] = [];
-  batch.items.forEach((item, index) => {
+  batch.readings.forEach((item, index) => {
     const result = validateReading(item, now, deviceId);
     if (result.ok) rows.push(result.row);
     else rejected.push({ index, reason: result.reason });
+  });
+  const events: EventRow[] = [];
+  const rejectedEvents: { index: number; reason: string }[] = [];
+  batch.events.forEach((item, index) => {
+    const result = validateEvent(item, now, deviceId);
+    if (result.ok) events.push(result.row);
+    else rejectedEvents.push({ index, reason: result.reason });
   });
 
   if (rows.length > 0) {
@@ -104,11 +113,31 @@ Deno.serve(async (req) => {
     }
   }
 
+  if (events.length > 0) {
+    // Same as readings: a re-sent event is stored once.
+    const { error } = await supabase
+      .from("device_events")
+      .upsert(events, { onConflict: "device_id,ts,kind,message", ignoreDuplicates: true });
+    if (error) {
+      console.error("event insert failed", error.message);
+      // The station sends readings and events again; the readings are ignored as duplicates.
+      return json({ error: "database error" }, 500);
+    }
+  }
+
   if (rejected.length > 0) {
     console.warn("rejected readings", JSON.stringify(rejected));
+  }
+  if (rejectedEvents.length > 0) {
+    console.warn("rejected events", JSON.stringify(rejectedEvents));
   }
   const running = runningFirmware(rows);
   const target = device.data.target_fw;
   const update = needsUpdate(running, target) ? await updateOffer(target) : null;
-  return json({ accepted: rows.length, rejected, ...(update && { update }) }, 200);
+  return json({
+    accepted: rows.length,
+    rejected,
+    ...(batch.events.length > 0 && { events: { accepted: events.length, rejected: rejectedEvents } }),
+    ...(update && { update }),
+  }, 200);
 });
