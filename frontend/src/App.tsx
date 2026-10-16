@@ -1,17 +1,22 @@
+import * as Tabs from '@radix-ui/react-tabs';
 import { useMemo, useRef, useState } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import { CurrentConditions } from './components/CurrentConditions';
 import { Footer } from './components/Footer';
+import { Forecast } from './components/Forecast';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { PageLoading } from './components/Loading';
 import { RangeCharts } from './components/RangeCharts';
-import { useDay, useLast24h, useLast7Days, useNow, useRange, useSky, useStations } from './lib/api';
+import {
+  isMissing, useDay, useForecast, useLast24h, useLast7Days, useNow, useRange, useSky, useStations,
+} from './lib/api';
 import { customRangeProblem, daysRange, lastDaysRange, type CustomRange } from './lib/custom-range';
 import { TIME_ZONE, madridToday } from './lib/format';
 import type { RangeResponse } from '../shared/api-types';
 import { fromHours, fromReadings, lastHours, sliceSeries, type RangeKey, type RangeSeries } from './lib/series';
 import { chooseStation, setStationInUrl, stationFromUrl } from './lib/station';
+import { setViewInUrl, viewFromUrl, type View } from './lib/view';
 
 function rangeSeries(data: RangeResponse | undefined): RangeSeries | undefined {
   if (!data) {
@@ -31,6 +36,7 @@ export function App() {
   const [wanted, setWanted] = useState(stationFromUrl);
   const station = stations.data && chooseStation(stations.data, wanted);
   const stationId = station?.id;
+  const [view, setView] = useState(viewFromUrl);
   const [range, setRange] = useState<RangeKey>('last24h');
   const [custom, setCustom] = useState(initialCustomRange);
   // A dragged stretch, cut from the data already shown, until its own data arrives.
@@ -52,6 +58,7 @@ export function App() {
     stationId, last30.from, last30.to, range === 'last30days' && installDate !== undefined, true,
   );
   const sky = useSky(stationId);
+  const forecast = useForecast(stationId, view === 'forecast');
 
   // Today: from 00:00 Madrid to when the data was fetched (/api/day returns no bounds).
   const todaySeries = useMemo(() => {
@@ -116,32 +123,51 @@ export function App() {
     setWanted(id);
     setStationInUrl(id);
   };
+  const pickView = (value: string) => {
+    setView(value as View);
+    setViewInUrl(value as View);
+  };
 
   return (
     <main className="app-shell">
       <Header lastTs={lastTs} station={station} stations={stations.data!.stations} onStationChange={pickStation} />
-      <div className="content">
-        <Hero reading={reading} sky={sky.data} place={station.name} />
-        {now.isError && <p role="alert" className="chart-status">No se pudieron cargar los datos actuales.</p>}
-        <CurrentConditions reading={reading} today={todaySeries} last24h={last24h.data?.readings} />
-        <RangeCharts
-          range={range}
-          onRangeChange={setRange}
-          custom={custom}
-          onCustomChange={setCustom}
-          installDate={installDate}
-          onSelectRange={(selected) => {
-            if (chart.series) {
-              setPreview(sliceSeries(chart.series, selected.from, selected.to));
-            }
-            setCustom(selected);
-            setRange('custom');
-          }}
-          series={chart.series}
-          isPending={chart.query.isLoading}
-          isError={chart.query.isError}
-        />
-      </div>
+      <Tabs.Root className="content" value={view} onValueChange={pickView}>
+        <Tabs.List className="view-tabs" aria-label="Vista">
+          <Tabs.Trigger value="station">Mi estación</Tabs.Trigger>
+          <Tabs.Trigger value="forecast">Predicción</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="station">
+          <Hero reading={reading} sky={sky.data} place={station.name} />
+          {now.isError && <p role="alert" className="chart-status">No se pudieron cargar los datos actuales.</p>}
+          <CurrentConditions reading={reading} today={todaySeries} last24h={last24h.data?.readings} />
+          <RangeCharts
+            range={range}
+            onRangeChange={setRange}
+            custom={custom}
+            onCustomChange={setCustom}
+            installDate={installDate}
+            onSelectRange={(selected) => {
+              if (chart.series) {
+                setPreview(sliceSeries(chart.series, selected.from, selected.to));
+              }
+              setCustom(selected);
+              setRange('custom');
+            }}
+            series={chart.series}
+            isPending={chart.query.isLoading}
+            isError={chart.query.isError}
+          />
+        </Tabs.Content>
+        <Tabs.Content value="forecast">
+          <Forecast
+            place={station.name}
+            data={forecast.data}
+            isPending={forecast.isPending}
+            isError={forecast.isError}
+            missing={isMissing(forecast.error)}
+          />
+        </Tabs.Content>
+      </Tabs.Root>
       <Footer lastTs={lastTs} />
     </main>
   );

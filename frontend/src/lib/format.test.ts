@@ -1,7 +1,7 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
 import {
-  compassPoint, formatAge, fromMadridWallClockMs, formatDay, formatLongDate, formatShortDateTime, formatTime, formatWhen, fromPickerDate, greeting, isStale,
+  compassPoint, forecastDayLabel, formatAge, fromMadridWallClockMs, formatDay, formatLongDate, formatShortDateTime, formatTime, formatWhen, fromPickerDate, greeting, isStale,
   msToKmh, timeZoneName, toPickerDate,
   toMadridWallClockMs, wallClockAxisLabel, wallClockLabel,
 } from './format';
@@ -115,5 +115,21 @@ describe('fromMadridWallClockMs', () => {
   });
   it('accepts the fractional ms a brush selection gives', () => {
     expect(fromMadridWallClockMs(toMadridWallClockMs('2026-10-14T05:12:00Z') + 0.4).toString()).toBe('2026-10-14T05:12:00Z');
+  });
+});
+
+describe('forecastDayLabel', () => {
+  const today = Temporal.PlainDate.from('2026-10-16');
+
+  it('says Hoy for today', () => {
+    expect(forecastDayLabel('2026-10-16', today)).toBe('Hoy');
+  });
+
+  it('gives a capitalised short weekday and the day otherwise', () => {
+    expect(forecastDayLabel('2026-10-17', today)).toBe('Sáb 17');
+  });
+
+  it('works on the day the clock goes back', () => {
+    expect(forecastDayLabel('2026-10-25', today)).toBe('Dom 25');
   });
 });

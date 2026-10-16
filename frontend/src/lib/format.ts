@@ -91,6 +91,17 @@ export function formatDay(iso: string): string {
   return dayFormat.format(new Date(iso));
 }
 
+// "Hoy" for today, else "Sáb 17", for a Madrid date (YYYY-MM-DD) in the forecast.
+export function forecastDayLabel(date: string, today: Temporal.PlainDate): string {
+  const day = Temporal.PlainDate.from(date);
+  if (day.equals(today)) {
+    return 'Hoy';
+  }
+  // Midday: a time every day has, whatever the clock change.
+  const label = formatDay(day.toZonedDateTime({ timeZone: TIME_ZONE, plainTime: '12:00' }).toInstant().toString());
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 // "martes, 13 de octubre" in Madrid.
 export function formatLongDate(iso: string): string {
   return longDateFormat.format(new Date(iso));

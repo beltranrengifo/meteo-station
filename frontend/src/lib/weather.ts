@@ -103,6 +103,20 @@ export function skyKind(code: number): SkyKind {
   return 'cloudy'; // 3 overcast, 45 and 48 fog
 }
 
+const SKY_KIND_LABELS: Record<SkyKind, string> = {
+  clear: 'Despejado',
+  partly: 'Poco nuboso',
+  cloudy: 'Nublado',
+  rain: 'Lluvia',
+  snow: 'Nieve',
+  storm: 'Tormenta',
+};
+
+// One word for the forecast cards, above the exact label.
+export function skyKindLabel(kind: SkyKind): string {
+  return SKY_KIND_LABELS[kind];
+}
+
 // WHO UV index categories.
 export function uvCategory(uvIndex: number): string {
   const uv = Math.round(uvIndex);

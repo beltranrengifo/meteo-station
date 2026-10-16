@@ -15,7 +15,7 @@ export function Footer({ lastTs }: { lastTs: string | null }) {
         Datos de la estación{isStale(lastTs, now) ? '' : ` · Próxima lectura en ${seconds} s`}
       </span>
       <small className="attribution">
-        Cielo y UV: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo.com</a>
+        Cielo, UV y previsión: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo.com</a>
       </small>
     </footer>
   );

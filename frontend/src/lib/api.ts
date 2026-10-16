@@ -2,14 +2,16 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Temporal } from 'temporal-polyfill';
 import type {
-  DayResponse, Last24hResponse, Last7DaysResponse, NowResponse, RangeResponse, SkyResponse, StationsResponse,
+  DayResponse, ForecastResponse, Last24hResponse, Last7DaysResponse, NowResponse, RangeResponse, SkyResponse,
+  StationsResponse,
 } from '../../shared/api-types';
 import { msUntilNextReading } from '../../shared/refresh';
 
 // Ask again just after each new reading lands. The API cache for today expires at that same
 // point, so the extra 2 s make sure the CDN fetches the fresh data.
 const AFTER_EXPIRY_MS = 2_000;
-// /api/sky is cached 15 minutes: Open-Meteo updates its current values every 15 minutes.
+// /api/sky and /api/forecast are cached 15 minutes: Open-Meteo updates its current values
+// every 15 minutes.
 const SKY_REFRESH_MS = 15 * 60_000;
 
 function untilNextReading(): number {
@@ -90,13 +92,34 @@ export function useRange(station: StationId, from: string, to: string, enabled: 
   });
 }
 
-// A station without coordinates answers 404: no sky, the rest of the page as usual.
+// A station without coordinates answers 404 to /api/sky and /api/forecast: no use asking again.
+function retryUnlessMissing(failures: number, error: Error): boolean {
+  return !isMissing(error) && failures < 3;
+}
+
+export function isMissing(error: Error | null): boolean {
+  return error?.message.endsWith('HTTP 404') ?? false;
+}
+
+// Without coordinates: no sky, the rest of the page as usual.
 export function useSky(station: StationId) {
   return useQuery({
     queryKey: ['sky', station],
     queryFn: () => getJson<SkyResponse>(stationPath('/api/sky', station!)),
     enabled: station !== undefined,
-    retry: (failures, error) => !error.message.endsWith('HTTP 404') && failures < 3,
+    retry: retryUnlessMissing,
+    staleTime: SKY_REFRESH_MS,
+    refetchInterval: SKY_REFRESH_MS,
+  });
+}
+
+// Only once the forecast tab is opened.
+export function useForecast(station: StationId, enabled: boolean) {
+  return useQuery({
+    queryKey: ['forecast', station],
+    queryFn: () => getJson<ForecastResponse>(stationPath('/api/forecast', station!)),
+    enabled: enabled && station !== undefined,
+    retry: retryUnlessMissing,
     staleTime: SKY_REFRESH_MS,
     refetchInterval: SKY_REFRESH_MS,
   });

@@ -72,6 +72,30 @@ export interface SkyResponse {
   uvIndexMaxToday: number;
 }
 
+// GET /api/forecast: the forecast for the station from Open-Meteo (CC BY 4.0, credited too).
+export interface ForecastHour {
+  time: string;                        // start of the hour (ISO 8601 UTC)
+  weatherCode: number;                 // WMO weather interpretation code
+  isDay: boolean;
+  tempC: number;
+  precipProbabilityPct: number | null; // null when the model gives none
+}
+
+export interface ForecastDay {
+  date: string;                        // YYYY-MM-DD, Madrid
+  weatherCode: number;                 // the day's most significant weather
+  tempMinC: number;
+  tempMaxC: number;
+  precipMm: number;
+  precipProbabilityPct: number | null;
+  gustMaxMs: number;
+}
+
+export interface ForecastResponse {
+  hours: ForecastHour[]; // the next 24, from the current hour
+  days: ForecastDay[];   // today and the next 6
+}
+
 // GET /api/month?month=YYYY-MM
 export interface MonthResponse {
   month: string;
