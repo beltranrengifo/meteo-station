@@ -105,3 +105,10 @@
 - Result: OK. `pnpm station logs meteo-station-bench 1` showed the boot (reset: restart by the firmware), the OTA verification, WiFi connected (RSSI -65 dBm) and "0.4.0 delivered its first upload: kept". Health in the newest reading: free heap 127 KB, 0 WiFi drops since boot. No reading lost during the update.
 - Problems and fix: events logged in the same second came out of order; `pnpm station logs` now sorts ties by insert order.
 - config.h changes: `FW_VERSION` 0.4.0.
+
+## 2026-10-19 — Check: final outdoor wiring
+- Goal: check every sensor after rewiring with the production outdoor cables.
+- Setup: final outdoor wiring, cables cut to their real lengths, new pull-up and divider resistors of the same values (10k). Serial monitor: `[check]` self-check (`s` key) and the `[live]` line of the bench build.
+- Result: OK. Self-check and manual test of the four sensors (BME280, anemometer, rain gauge, wind vane) all correct. Each of the 8 vane positions read its right direction, so the calibration table still holds.
+- Problems and fix: none.
+- config.h changes: none.
