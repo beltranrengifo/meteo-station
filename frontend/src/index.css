@@ -35,6 +35,7 @@
   --sky-night: linear-gradient(145deg, #2a3a5e 0%, #18213a 100%);
   --sky-border: #dce4f3;
   --cloud: rgba(255, 255, 255, 0.92);
+  --rain: #5d8be3;
   --caption: #63728c;
   --caption-strong: #273957;
   --shadow: rgba(40, 60, 100, 0.06);
@@ -68,6 +69,7 @@
     --sky-day: linear-gradient(145deg, #23365e 0%, #1a2846 100%);
     --sky-border: #2c3a5c;
     --cloud: rgba(214, 224, 242, 0.9);
+    --rain: #9bb6f5;
     --caption: #a9b6cc;
     --caption-strong: #e6eaf2;
     --shadow: rgba(0, 0, 0, 0.25);
@@ -145,15 +147,19 @@ button { font: inherit; }
 .cloud-back { top: 22px; left: 22px; transform: scale(.62); opacity: .66; animation: cloud-drift 15s ease-in-out infinite alternate; }
 .cloud-front { left: 51px; bottom: 41px; animation: cloud-drift 11s ease-in-out infinite alternate-reverse; }
 .cloud-top { top: 14px; right: 30px; transform: scale(.8); opacity: .85; animation: cloud-drift 13s ease-in-out infinite alternate; }
-.drops, .flakes { position: absolute; left: 70px; bottom: 34px; width: 80px; height: 30px; }
-.drops span, .flakes span { position: absolute; top: 0; display: block; animation: fall 1.1s linear infinite; }
-.drops span { width: 2px; height: 8px; border-radius: 2px; background: #6f9bea; }
-.flakes span { width: 5px; height: 5px; border-radius: 50%; background: #ffffff; animation-duration: 2.4s; }
-.drops span:nth-child(1), .flakes span:nth-child(1) { left: 8px; animation-delay: 0s; }
-.drops span:nth-child(2), .flakes span:nth-child(2) { left: 22px; animation-delay: .4s; }
-.drops span:nth-child(3), .flakes span:nth-child(3) { left: 36px; animation-delay: .2s; }
-.drops span:nth-child(4), .flakes span:nth-child(4) { left: 50px; animation-delay: .7s; }
-.drops span:nth-child(5), .flakes span:nth-child(5) { left: 64px; animation-delay: .5s; }
+.weather-visual.night { --rain: #9bb6f5; }
+/* Rain and snow fall from behind the clouds and fade out over the caption. */
+.drops, .flakes { position: absolute; inset: 18px 0 0; mask-image: linear-gradient(to bottom, transparent, #000 15%, #000 50%, transparent 85%); }
+.drops span, .flakes span { position: absolute; top: 0; left: var(--x); display: block; animation: var(--fall) var(--duration) linear infinite; animation-delay: calc(var(--phase) * var(--duration) * -1); }
+.drops { --fall: rain-fall; --duration: 1s; }
+.drops.moderate { --duration: .8s; }
+.drops.heavy { --duration: .6s; }
+.drops span { width: 1.5px; height: calc(8px + var(--size) * 7px); border-radius: 2px; background: linear-gradient(to bottom, transparent, var(--rain)); }
+.drops.heavy span { width: 2px; }
+.flakes { --fall: snow-fall; --duration: 4s; }
+.flakes.moderate { --duration: 3.4s; }
+.flakes.heavy { --duration: 2.8s; }
+.flakes span { width: calc(3px + var(--size) * 3px); aspect-ratio: 1; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(60, 103, 170, .35); }
 .weather-caption { position: absolute; left: 13px; bottom: 10px; display: flex; flex-direction: column; gap: 2px; color: var(--caption); font-size: .62rem; }
 .weather-caption strong { color: var(--caption-strong); font-size: .68rem; }
 
@@ -297,12 +303,14 @@ footer .attribution a { color: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sun-orb, .sun-rays, .cloud-back, .cloud-front, .cloud-top, .drops span, .flakes span { animation: none; }
+  .sun-orb, .sun-rays, .cloud-back, .cloud-front, .cloud-top { animation: none; }
+  .drops span, .flakes span { animation-play-state: paused; }
   .spin { animation-duration: 3s; }
 }
 
 @keyframes sun-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 @keyframes rays-turn { to { transform: rotate(360deg); } }
 @keyframes cloud-drift { from { translate: -4px 0; } to { translate: 9px 2px; } }
-@keyframes fall { from { transform: translateY(0); opacity: 1; } to { transform: translateY(26px); opacity: 0; } }
+@keyframes rain-fall { from { transform: translate(0, -16px) rotate(12deg); } to { transform: translate(-24px, 100px) rotate(12deg); } }
+@keyframes snow-fall { from { transform: translate(0, -10px); } 50% { transform: translate(7px, 45px); } to { transform: translate(-3px, 100px); } }
 @keyframes spin { to { transform: rotate(360deg); } }

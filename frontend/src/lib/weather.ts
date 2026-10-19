@@ -103,6 +103,24 @@ export function skyKind(code: number): SkyKind {
   return 'cloudy'; // 3 overcast, 45 and 48 fog
 }
 
+// How hard it rains or snows, for the sky picture. Drizzle (51-57) is always light: its drops
+// are tiny even when dense. Thunderstorms count as heavy.
+export type PrecipIntensity = 'light' | 'moderate' | 'heavy';
+
+const MODERATE_CODES = new Set([63, 73, 81]);
+const HEAVY_CODES = new Set([65, 67, 75, 82, 86, 95, 96, 97, 99]);
+
+export function precipIntensity(code: number): PrecipIntensity | null {
+  const kind = skyKind(code);
+  if (kind !== 'rain' && kind !== 'snow' && kind !== 'storm') {
+    return null;
+  }
+  if (HEAVY_CODES.has(code)) {
+    return 'heavy';
+  }
+  return MODERATE_CODES.has(code) ? 'moderate' : 'light';
+}
+
 const SKY_KIND_LABELS: Record<SkyKind, string> = {
   clear: 'Despejado',
   partly: 'Poco nuboso',

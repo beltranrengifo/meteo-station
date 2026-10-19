@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ReadingRow } from '../../shared/api-types';
-import { dewPoint, pressureTrend, skyKind, skyLabel, uvCategory } from './weather';
+import { dewPoint, precipIntensity, pressureTrend, skyKind, skyLabel, uvCategory } from './weather';
 
 function reading(ts: string, values: Partial<ReadingRow> = {}): ReadingRow {
   return {
@@ -57,6 +57,11 @@ describe('sky', () => {
   it('groups the codes into what the picture draws', () => {
     expect([0, 1, 2, 3, 45, 55, 63, 81, 73, 86, 95, 99].map(skyKind)).toEqual([
       'clear', 'clear', 'partly', 'cloudy', 'cloudy', 'rain', 'rain', 'rain', 'snow', 'snow', 'storm', 'storm',
+    ]);
+  });
+  it('grades rain and snow, and nothing for a dry sky', () => {
+    expect([2, 45, 55, 61, 63, 65, 80, 82, 71, 73, 86, 95].map(precipIntensity)).toEqual([
+      null, null, 'light', 'light', 'moderate', 'heavy', 'light', 'heavy', 'light', 'moderate', 'heavy', 'heavy',
     ]);
   });
 });
