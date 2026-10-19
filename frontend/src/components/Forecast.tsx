@@ -108,12 +108,12 @@ const UNITS: Record<string, { unit: string; decimals: number }> = {
   Probabilidad: { unit: '%', decimals: 0 },
 };
 
-// Every hour: temperature as a line, the rain amount as bars, its chance as a dashed line on a
-// hidden 0-100 % axis.
+// Every hour: temperature as a line; the precipitation amount and its chance as bars side by
+// side, each on its own axis on the right (mm, then 0-100 %).
 function hoursOption(hours: ForecastHour[]): EChartsOption {
   const now = Temporal.Now.instant();
   return {
-    grid: { left: 36, right: 44, top: 30, bottom: 24 },
+    grid: { left: 36, right: 84, top: 30, bottom: 24 },
     legend: { top: 0, left: 0, icon: 'roundRect', itemWidth: 14, itemHeight: 3 },
     tooltip: {
       trigger: 'axis',
@@ -146,7 +146,14 @@ function hoursOption(hours: ForecastHour[]): EChartsOption {
         splitLine: { show: false },
         axisLabel: { formatter: '{value} mm' },
       },
-      { type: 'value', min: 0, max: 100, show: false },
+      {
+        type: 'value',
+        min: 0,
+        max: 100,
+        offset: 44,
+        splitLine: { show: false },
+        axisLabel: { formatter: '{value}%' },
+      },
     ],
     series: [
       {
@@ -159,13 +166,12 @@ function hoursOption(hours: ForecastHour[]): EChartsOption {
       } satisfies BarSeriesOption,
       {
         name: 'Probabilidad',
-        type: 'line',
+        type: 'bar',
         yAxisIndex: 2,
-        showSymbol: false,
-        lineStyle: { width: 1.2, type: 'dashed', color: COLORS.teal },
-        itemStyle: { color: COLORS.teal },
+        barMaxWidth: 14,
+        itemStyle: { color: COLORS.teal, opacity: 0.45, borderRadius: [4, 4, 0, 0] },
         data: hours.map((hour) => hour.precipProbabilityPct),
-      } satisfies LineSeriesOption,
+      } satisfies BarSeriesOption,
       {
         name: 'Temperatura',
         type: 'line',
@@ -196,7 +202,7 @@ function Hours({ hours, today }: { hours: ForecastHour[]; today: Temporal.PlainD
           <span className="chart-unit">°C · mm · %</span>
         </div>
         <p className="chart-note">
-          Barras: litros por m² en cada hora (la nieve, en agua). Línea discontinua: probabilidad de que caigan más de 0.1 mm.
+          Barras azules: litros por m² en cada hora (la nieve, en agua). Barras verdes: probabilidad de que caigan más de 0.1 mm.
           Pasa el ratón o el dedo para ver cada hora.
         </p>
         <Chart option={option} />
