@@ -1,4 +1,5 @@
-// Footer: when the next reading lands, and the Open-Meteo credit its CC BY 4.0 licence asks for.
+// Footer: when the next reading lands, the Open-Meteo credit its CC BY 4.0 licence asks for, and
+// a link to the source code.
 import { useClock } from '../lib/clock';
 import { isStale } from '../lib/format';
 import { msUntilNextReading } from '../../shared/refresh';
@@ -16,6 +17,7 @@ export function Footer({ lastTs }: { lastTs: string | null }) {
       </span>
       <small className="attribution">
         Cielo, UV y previsión: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo.com</a>
+        {' · '}Código: <a href="https://github.com/beltranrengifo/meteo-station" target="_blank" rel="noreferrer">GitHub</a>
       </small>
     </footer>
   );
