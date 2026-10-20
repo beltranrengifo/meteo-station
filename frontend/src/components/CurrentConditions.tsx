@@ -1,5 +1,6 @@
 // Latest values, today's extremes so far and a warning when the station stops sending.
-import { Activity, Droplets, Gauge, Thermometer, Umbrella, Wind, type LucideIcon } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Droplets, Gauge, Thermometer, Umbrella, Wind, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import type { ReadingRow } from '../../shared/api-types';
 import { useClock } from '../lib/clock';
@@ -20,8 +21,8 @@ interface MetricCardProps {
   label: string;
   value: string;
   unit: string;
-  note?: string; // a second value, between the main one and the detail
-  detail: string;
+  note?: ReactNode; // a second value, between the main one and the detail
+  detail: ReactNode;
   tone: string;
 }
 
@@ -41,6 +42,24 @@ function MetricCard({ icon: Icon, label, value, unit, note, detail, tone }: Metr
       {note && <div className="metric-note">{note}</div>}
       <div className="metric-detail">{detail}</div>
     </article>
+  );
+}
+
+// Today's lowest and highest so far, one per line, each with the time it happened.
+function Extremes({ min, max }: { min: { value: number; at: string } | null | undefined; max: { value: number; at: string } | null | undefined }) {
+  const row = (Icon: LucideIcon, label: string, extreme: { value: number; at: string } | null | undefined) => (
+    <span className="extreme">
+      <Icon size={12} strokeWidth={2} aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+      <b>{fixed(extreme?.value, 1)}°</b>
+      <span>{extreme ? formatTime(extreme.at) : '—'}</span>
+    </span>
+  );
+  return (
+    <span className="extremes">
+      {row(ArrowDown, 'Mínima', min)}
+      {row(ArrowUp, 'Máxima', max)}
+    </span>
   );
 }
 
@@ -100,8 +119,8 @@ export function CurrentConditions({ reading, today, last24h }: CurrentConditions
           label="Temperatura"
           value={fixed(reading?.temp_c, 1)}
           unit="°C"
-          note={`Sensación ${fixed(feels, 1)} °C`}
-          detail={`Mín ${fixed(tempMin?.value, 1)}° (${at(tempMin?.at)}) · Máx ${fixed(tempMax?.value, 1)}° (${at(tempMax?.at)})`}
+          note={<>Sensación <b>{fixed(feels, 1)}°</b></>}
+          detail={<Extremes min={tempMin} max={tempMax} />}
           tone="blue"
         />
         <MetricCard
