@@ -180,6 +180,7 @@ button { font: inherit; }
 .metric-icon { display: grid; place-items: center; color: var(--tone); }
 .metric-value { margin: 1.05rem 0 .25rem; font-size: 1.75rem; font-weight: 700; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
 .metric-value small { margin-left: .35rem; color: var(--muted); font-size: .75rem; font-weight: 500; letter-spacing: 0; }
+.metric-note { margin-bottom: .3rem; font-size: .78rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .metric-detail { color: var(--muted); font-size: .68rem; line-height: 1.4; }
 
 /* Charts */

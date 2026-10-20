@@ -5,7 +5,7 @@ import type { ReadingRow } from '../../shared/api-types';
 import { useClock } from '../lib/clock';
 import { compassPoint, formatAge, formatTime, isStale, msToKmh } from '../lib/format';
 import { rangeExtreme, totalRain, type RangeSeries } from '../lib/series';
-import { PRESSURE_TREND_HOURS, dewPoint, pressureTrend } from '../lib/weather';
+import { PRESSURE_TREND_HOURS, dewPoint, feelsLike, pressureTrend } from '../lib/weather';
 
 function fixed(value: number | null | undefined, decimals: number): string {
   return value === null || value === undefined ? '—' : value.toFixed(decimals);
@@ -20,11 +20,12 @@ interface MetricCardProps {
   label: string;
   value: string;
   unit: string;
+  note?: string; // a second value, between the main one and the detail
   detail: string;
   tone: string;
 }
 
-function MetricCard({ icon: Icon, label, value, unit, detail, tone }: MetricCardProps) {
+function MetricCard({ icon: Icon, label, value, unit, note, detail, tone }: MetricCardProps) {
   return (
     <article className={`metric-card ${tone}`}>
       <div className="metric-top">
@@ -37,6 +38,7 @@ function MetricCard({ icon: Icon, label, value, unit, detail, tone }: MetricCard
         {value}
         <small>{unit}</small>
       </div>
+      {note && <div className="metric-note">{note}</div>}
       <div className="metric-detail">{detail}</div>
     </article>
   );
@@ -80,6 +82,7 @@ export function CurrentConditions({ reading, today, last24h }: CurrentConditions
   const gustMax = today && rangeExtreme(today, 'max', (s) => s.windGust);
   const trend = last24h ? pressureTrend(last24h) : null;
   const dew = dewPoint(reading?.temp_c ?? null, reading?.humidity_pct ?? null);
+  const feels = feelsLike(reading?.temp_c ?? null, reading?.humidity_pct ?? null, reading?.wind_avg_ms ?? null);
 
   return (
     <section className="current-panel">
@@ -97,6 +100,7 @@ export function CurrentConditions({ reading, today, last24h }: CurrentConditions
           label="Temperatura"
           value={fixed(reading?.temp_c, 1)}
           unit="°C"
+          note={`Sensación ${fixed(feels, 1)} °C`}
           detail={`Mín ${fixed(tempMin?.value, 1)}° (${at(tempMin?.at)}) · Máx ${fixed(tempMax?.value, 1)}° (${at(tempMax?.at)})`}
           tone="blue"
         />
