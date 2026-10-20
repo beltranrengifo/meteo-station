@@ -121,3 +121,10 @@
   - BME280 dark and 3V3 at 1 to 2 V on the screw terminals, while the ESP32's own pin read 3.33 V. Readings came with temperature empty, and hundreds of phantom rain tips (dropped by ingest, over 50 mm per minute). With no load the terminals read 3.3 V, so the fault only showed with something connected. Measured between the ESP32's GND pin and the board's GND terminal: voltage there, so the GND contact of the expansion board was bad. Fix: new expansion board.
   - On the new board the rain gauge counted nothing (`0 tips since boot`), although its terminal went from 3.3 V to 0 V on each tip. No continuity between terminal 33 and the ESP32's pin 33, nor for 25. Terminal 26 has continuity. Fix: rain gauge and its pull-up resistor moved to terminal 26, `PIN_RAIN` 26, station build flashed over USB.
 - config.h changes: `PIN_RAIN` 33 to 26.
+
+## 2026-10-20 — Installation: station on the mast (meteo-8j8)
+- Goal: mount the station outdoors and make it the station shown on the public dashboard.
+- Setup: station build 0.4.0 on meteo-station-lasrozas-1 (rain gauge on GPIO 26), in the IP65 box on the mast, powered by the Mean Well LPV-20-5 through the 5V terminal. Vane north mark set with a compass (`VANE_OFFSET_DEG` 0). Powered on at 15:50 (Madrid time).
+- Result: OK. First 52 minutes on the mast: 52 of 52 readings, no gaps, no reboots, 0 WiFi drops, RSSI -72 to -66 dBm, free heap steady at 127 KB. Temperature 15.5 to 16.2 °C, humidity 48 to 52 %, wind 0.6 m/s average with 4 m/s gusts, 0 rain tips. Wind direction 280 to 320° against 280° from Open-Meteo (central Madrid): within one step of the 8-position vane, so no offset for now; to be compared hour by hour over more days.
+- Problems and fix: the test readings and events of meteo-station-lasrozas-1 before 15:50 were deleted, and the aggregates refreshed, with SQL in the Supabase editor (the secret key has no DELETE). The station had no `display_name`, so `pnpm station show` failed; it was set to "Madrid, Las Rozas" and listed with SQL. meteo-station-bench was taken off the dashboard.
+- config.h changes: none.
