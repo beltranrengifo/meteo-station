@@ -17,7 +17,7 @@ No soldering: everything connects with screw terminals, STEMMA QT / Qwiic cables
 | Adafruit BME280 with STEMMA QT | temperature, humidity, pressure | I2C (GPIO 21/22), address 0x77 |
 | Anemometer (wind/rain kit) | wind speed and gust | reed switch, interrupt on GPIO 32 |
 | Wind vane (wind/rain kit) | wind direction, 8 positions | voltage divider, ADC on GPIO 34 |
-| Tipping-bucket rain gauge (wind/rain kit) | rain, 0.2794 mm per tip | reed switch, interrupt on GPIO 33 |
+| Tipping-bucket rain gauge (wind/rain kit) | rain, 0.2794 mm per tip | reed switch, interrupt on GPIO 26 |
 
 The wind/rain kit is a SparkFun SEN-15901 or an equivalent (we used BricoGeek SEN-0051): anemometer, vane, rain gauge, two-piece mast and arms. The anemometer plugs into the vane, so the kit ends in two RJ11 cables: one for wind, one for rain.
 

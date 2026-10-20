@@ -11,7 +11,7 @@
 constexpr int PIN_I2C_SDA = 21;
 constexpr int PIN_I2C_SCL = 22;
 constexpr int PIN_ANEMOMETER = 32;  // external 10k pull-up to 3V3, FALLING interrupt
-constexpr int PIN_RAIN = 33;        // external 10k pull-up to 3V3, CHANGE interrupt (pulse-width filter)
+constexpr int PIN_RAIN = 26;        // external 10k pull-up to 3V3, CHANGE interrupt (pulse-width filter)
 constexpr int PIN_VANE = 34;        // ADC1, 10k divider to GND
 constexpr int PIN_STATUS_LED = 2;   // onboard blue LED (LED_BUILTIN is not defined)
 constexpr int PIN_SETUP_BUTTON = 0; // onboard BOOT button, low while pressed

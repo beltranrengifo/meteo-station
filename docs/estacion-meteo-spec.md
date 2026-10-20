@@ -199,7 +199,7 @@ Total BricoGeek: 102,95 € sin IVA (124,57 € con IVA), más envío.
 | I²C SDA (BME280) | 21 | Cable azul del QT |
 | I²C SCL (BME280) | 22 | Cable amarillo del QT |
 | Anemómetro (pulsos) | 32 | Interrupción en flanco de bajada, pull-up externo 10 kΩ a 3,3 V |
-| Pluviómetro (pulsos) | 33 | Interrupción en flanco de bajada, pull-up externo 10 kΩ a 3,3 V |
+| Pluviómetro (pulsos) | 26 | Interrupción en flanco de bajada, pull-up externo 10 kΩ a 3,3 V |
 | Veleta (analógica) | 34 | ADC1, divisor con 10 kΩ a 3,3 V |
 | LED integrado | 2 | Opcional, estado (verificar en la placa) |
 
@@ -213,13 +213,13 @@ Total BricoGeek: 102,95 € sin IVA (124,57 € con IVA), más envío.
 | Borna 3V3 (B) | Cable corto al **WAGO 221-415** |
 | WAGO | Resistencia pull-up anemómetro, resistencia pull-up pluviómetro, resistencia del divisor de la veleta (queda 1 entrada libre) |
 | Otra pata de la resistencia del anemómetro | Borna GPIO 32 (A) |
-| Otra pata de la resistencia del pluviómetro | Borna GPIO 33 (A) |
+| Otra pata de la resistencia del pluviómetro | Borna GPIO 26 (A) |
 | Otra pata de la resistencia de la veleta | Borna GPIO 34 (A) |
 | RJ11 viento, hilo del anemómetro | Borna GPIO 32 (B) |
 | RJ11 viento, otro hilo del anemómetro | GND |
 | RJ11 viento, hilo de la veleta | Borna GPIO 34 (B) |
 | RJ11 viento, otro hilo de la veleta | GND |
-| RJ11 lluvia, un hilo | Borna GPIO 33 (B) |
+| RJ11 lluvia, un hilo | Borna GPIO 26 (B) |
 | RJ11 lluvia, otro hilo | GND |
 | QT negro | GND |
 | QT azul | GPIO 21 |

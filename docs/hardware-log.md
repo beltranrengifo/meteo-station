@@ -112,3 +112,12 @@
 - Result: OK. Self-check and manual test of the four sensors (BME280, anemometer, rain gauge, wind vane) all correct. Each of the 8 vane positions read its right direction, so the calibration table still holds.
 - Problems and fix: none.
 - config.h changes: none.
+
+## 2026-10-20 — Fix: expansion board swapped, rain gauge moved to GPIO 26
+- Goal: get the station working again after the first power-on with the final wiring, before closing the box.
+- Setup: station build 0.4.0 on meteo-station-lasrozas-1, indoors, final wiring. Multimeter: DC volts and continuity between each screw terminal and the ESP32's own pin.
+- Result: OK after the fixes below. Readings at 09:40 (Madrid time): temperature 21.3 °C and humidity 56 %, wind gust 6.2 m/s, vane direction changing, 4 rain tips (1.12 mm). Self-check all OK.
+- Problems and fix:
+  - BME280 dark and 3V3 at 1 to 2 V on the screw terminals, while the ESP32's own pin read 3.33 V. Readings came with temperature empty, and hundreds of phantom rain tips (dropped by ingest, over 50 mm per minute). With no load the terminals read 3.3 V, so the fault only showed with something connected. Measured between the ESP32's GND pin and the board's GND terminal: voltage there, so the GND contact of the expansion board was bad. Fix: new expansion board.
+  - On the new board the rain gauge counted nothing (`0 tips since boot`), although its terminal went from 3.3 V to 0 V on each tip. No continuity between terminal 33 and the ESP32's pin 33, nor for 25. Terminal 26 has continuity. Fix: rain gauge and its pull-up resistor moved to terminal 26, `PIN_RAIN` 26, station build flashed over USB.
+- config.h changes: `PIN_RAIN` 33 to 26.
