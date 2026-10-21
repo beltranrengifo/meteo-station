@@ -70,6 +70,16 @@ describe('subscribe', () => {
     expect(await subscribe()).toBe('on');
     expect(fetchMock).toHaveBeenCalledWith('/api/push/subscribe', expect.objectContaining({ method: 'POST' }));
   });
+  it('keeps the original error when undoing the browser subscription fails too', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AQID');
+    const { pushManager } = stubBrowser({});
+    const subscription = fakeSubscription();
+    subscription.unsubscribe.mockRejectedValue(new Error('unsubscribe failed'));
+    pushManager.subscribe.mockResolvedValue(subscription);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 429 })));
+    await expect(subscribe()).rejects.toThrow('429');
+    expect(subscription.unsubscribe).toHaveBeenCalled();
+  });
   it('undoes the browser subscription when the server refuses it', async () => {
     vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AQID');
     const { pushManager } = stubBrowser({});
@@ -90,6 +100,21 @@ describe('unsubscribe', () => {
     expect(await unsubscribe()).toBe('off');
     expect(fetchMock).toHaveBeenCalledWith('/api/push/unsubscribe', expect.objectContaining({ method: 'POST' }));
     expect(subscription.unsubscribe).toHaveBeenCalled();
+  });
+});
+
+describe('syncSubscription', () => {
+  it('sends the subscription once per page load', async () => {
+    // The once-per-load flag lives in the module, so each test gets a fresh copy.
+    vi.resetModules();
+    const { syncSubscription } = await import('./push');
+    stubBrowser({ subscription: fakeSubscription() });
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await Promise.all([syncSubscription(), syncSubscription()]);
+    await syncSubscription();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/push/subscribe', expect.objectContaining({ method: 'POST' }));
   });
 });
 

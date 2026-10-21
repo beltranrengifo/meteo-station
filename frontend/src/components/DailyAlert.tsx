@@ -13,9 +13,10 @@ export function DailyAlert() {
     let active = true;
     alertState()
       .then((current) => {
-        if (active) {
-          setState(current);
+        if (!active) {
+          return;
         }
+        setState(current);
         if (current === 'on') {
           syncSubscription().catch((error: unknown) => console.error(error));
         }

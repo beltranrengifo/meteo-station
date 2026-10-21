@@ -63,7 +63,7 @@ export async function subscribe(): Promise<AlertState> {
     await postJson('/api/push/subscribe', subscription.toJSON());
   } catch (error) {
     // Otherwise this phone would think it is subscribed while the server has no copy.
-    await subscription.unsubscribe();
+    await subscription.unsubscribe().catch(() => {});
     throw error;
   }
   return 'on';
@@ -79,8 +79,16 @@ export async function unsubscribe(): Promise<AlertState> {
   return 'off';
 }
 
-// Sends this phone's subscription again on every open, so the server gets it back if lost.
+// Sends this phone's subscription again once per app open, so the server gets it back if lost.
+// Once per page load, not per mount: the block remounts on every tab switch and the subscribe
+// endpoint has a limit per IP. The flag is set before the await so concurrent calls send once.
+let synced = false;
+
 export async function syncSubscription(): Promise<void> {
+  if (synced) {
+    return;
+  }
+  synced = true;
   const subscription = await currentSubscription();
   if (subscription) {
     await postJson('/api/push/subscribe', subscription.toJSON());
