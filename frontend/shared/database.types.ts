@@ -29,6 +29,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_messages: {
+        Row: {
+          body: string
+          day: string
+          sent_at: string
+          title: string
+        }
+        Insert: {
+          body: string
+          day: string
+          sent_at?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          day?: string
+          sent_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
       device_events: {
         Row: {
           device_id: string

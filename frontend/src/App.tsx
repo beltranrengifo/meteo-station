@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import { CurrentConditions } from './components/CurrentConditions';
 import { DailyAlert } from './components/DailyAlert';
+import { DailySummary } from './components/DailySummary';
 import { Footer } from './components/Footer';
 import { Forecast } from './components/Forecast';
 import { Header } from './components/Header';
@@ -160,6 +161,7 @@ export function App() {
           />
         </Tabs.Content>
         <Tabs.Content value="forecast">
+          <DailySummary />
           <Forecast
             place={station.name}
             data={forecast.data}

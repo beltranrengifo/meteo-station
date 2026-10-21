@@ -113,3 +113,12 @@ export interface MonthResponse {
 export interface DailyResponse {
   days: DailyRow[];
 }
+
+// GET /api/daily-summary: today's 9:00 notification as it was sent (the default station's), for
+// the "El aviso de hoy" card. 404 before it has been sent today.
+export interface DailySummaryResponse {
+  day: string;    // YYYY-MM-DD, Madrid
+  title: string;
+  body: string;   // lines separated by \n, as in the notification
+  sentAt: string; // instant, ISO 8601
+}

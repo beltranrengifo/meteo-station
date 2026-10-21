@@ -332,3 +332,12 @@ footer .attribution a { color: inherit; }
 .daily-alert button.secondary { color: var(--foreground); background: var(--active); }
 .daily-alert button:disabled { opacity: .6; cursor: default; }
 .daily-alert .daily-alert-error { color: var(--foreground); font-weight: 600; }
+
+/* Today's notification, in the forecast tab */
+.daily-summary { margin-bottom: 1.5rem; padding: 1.1rem 1.15rem; border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 16px; background: var(--surface); }
+.daily-summary h3 { margin: .35rem 0 .75rem; font-size: 1.05rem; }
+.daily-summary ul { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.daily-summary li { display: flex; align-items: flex-start; gap: .6rem; color: var(--foreground); font-size: .9rem; line-height: 1.45; }
+.daily-summary li.warning { padding: .45rem .6rem; border-radius: 10px; background: var(--active); font-weight: 600; }
+.daily-summary-emoji { flex: 0 0 1.4rem; font-size: 1.05rem; text-align: center; }
+.daily-summary button { display: inline-flex; align-items: center; gap: .45rem; margin-top: .9rem; border: 0; padding: .55rem 1rem; border-radius: 10px; color: var(--foreground); background: var(--active); font-weight: 600; cursor: pointer; }

@@ -85,6 +85,19 @@ export async function claimDay(day: Temporal.PlainDate): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
+// The message as sent today, for the in-app card. Saved before sending, so a tap on the
+// notification already finds it.
+export async function saveDailyMessage(day: Temporal.PlainDate, message: DailyMessage, at: Temporal.Instant): Promise<void> {
+  const row = { day: day.toString(), ...message, sent_at: at.toString() };
+  check((await db().from('daily_messages').upsert(row, { onConflict: 'day' })).error);
+}
+
+export async function dailyMessageOf(day: Temporal.PlainDate): Promise<{ title: string; body: string; sent_at: string } | null> {
+  const { data, error } = await db().from('daily_messages').select('title, body, sent_at').eq('day', day.toString()).maybeSingle();
+  check(error);
+  return data;
+}
+
 export async function recordRun(day: Temporal.PlainDate, message: DailyMessage, counts: RunCounts): Promise<void> {
   check((await db().from('push_daily_runs').update({ ...message, ...counts }).eq('day', day.toString())).error);
 }

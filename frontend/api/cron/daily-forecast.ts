@@ -8,10 +8,13 @@ import { isSendHour } from '../../server/daily-message.js';
 import { noStore, serverError } from '../../server/http.js';
 import { localToday } from '../../server/params.js';
 import { sendToAll, vapidDetails, type VapidDetails } from '../../server/push-sender.js';
-import { allSubscriptions, claimDay, deleteSubscriptions, markSent, recordRun } from '../../server/push-store.js';
+import {
+  allSubscriptions, claimDay, deleteSubscriptions, markSent, recordRun, saveDailyMessage,
+} from '../../server/push-store.js';
 import { bearerMatches } from '../../server/push-validation.js';
 
-// Tapping the notification opens the forecast tab.
+// Tapping the notification opens the forecast tab, where the "El aviso de hoy" card shows the
+// same message (saved in daily_messages before sending).
 const OPEN_URL = '/?view=forecast';
 
 export async function POST(request: Request): Promise<Response> {
@@ -54,6 +57,7 @@ export async function POST(request: Request): Promise<Response> {
     if (mode === null && !(await claimDay(today))) {
       return noStore({ status: 'already sent today' });
     }
+    await saveDailyMessage(today, daily.message, now);
     const result = await sendToAll(
       await allSubscriptions(),
       JSON.stringify({ ...daily.message, url: OPEN_URL }),
