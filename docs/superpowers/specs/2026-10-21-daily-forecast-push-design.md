@@ -53,8 +53,8 @@ Los datos de Open-Meteo cubren las horas de hoy de 9 a 23 h (hora de Madrid). Ha
 
 Ejemplo:
 
-> **⛅ Madrid, Las Rozas · miércoles 22**
-> ☀️ Soleado por la mañana, 🌦️ chubascos por la tarde. Se acerca una borrasca, la presión baja.
+> **🌦️ Madrid, Las Rozas · jueves 22**
+> ☀️ Soleado por la mañana, 🌦️ chubascos por la tarde y 🌙 despejado por la noche. Se acerca una borrasca, la presión baja.
 > 🌡️ Entre 9 °C (7 h) y 21 °C (16 h).
 > 💧 Lluvia (70 %) de 15 a 20 h, unos 4 mm.
 > 💨 Viento moderado, 25 km/h del oeste, con rachas de 45 km/h hacia las 17 h.
