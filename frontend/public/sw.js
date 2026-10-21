@@ -16,14 +16,21 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Focus an open dashboard window, or open one at the notification's URL.
+// Focus an open dashboard window and take it to the notification's URL, or open one there.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windows) => {
       const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
-      return open ? open.focus() : self.clients.openWindow(url);
+      if (!open) return self.clients.openWindow(url);
+      // navigate() can be missing or reject (e.g. an uncontrolled client): then just focus.
+      try {
+        await open.focus();
+        return await open.navigate(url);
+      } catch {
+        return open.focus();
+      }
     }),
   );
 });
