@@ -41,8 +41,10 @@ No hay cuentas de usuario. **La suscripción vive en el propio móvil**, dentro 
   4. La web manda eso a `POST /api/push/subscribe`, que lo guarda en `push_subscriptions`. El `endpoint` es único y la escritura es un upsert, así que repetirlo no duplica nada.
 - **Sincronización:** cada vez que se abre la app y hay suscripción, se vuelve a mandar a `subscribe`. Así, si la fila se perdió en el servidor, se recupera.
 - **Darse de baja:** el usuario toca "Dejar de recibirlo".
-  1. La web llama a `subscription.unsubscribe()`, que anula el endpoint en el servicio de push.
-  2. Manda el `endpoint` a `POST /api/push/unsubscribe`, que borra la fila.
+  1. La web manda primero el `endpoint` a `POST /api/push/unsubscribe`, que borra la fila.
+  2. Solo si el servidor responde bien, llama a `subscription.unsubscribe()`, que anula el endpoint en el servicio de push.
+
+  Si el servidor falla, el móvil sigue suscrito y el usuario puede reintentarlo.
 
   Para dar de baja un móvil hace falta conocer su endpoint, y solo lo conoce ese móvil.
 - **Bajas que no pasan por la web**, porque el usuario quita el permiso en Ajustes o borra la app: el servicio de push responde 404 o 410 en el siguiente envío, y entonces se borra la fila.
@@ -59,7 +61,7 @@ Ejemplo:
 > 💧 Lluvia (70 %) de 15 a 20 h, unos 4 mm.
 > 💨 Viento moderado, 25 km/h del oeste, con rachas de 45 km/h hacia las 17 h.
 
-El título es `{emoticono} {display_name de la estación} · {día de la semana} {día}`. El emoticono es el del cielo más severo del día (orden en 4.1).
+El título es `{emoticono} {display_name de la estación} · {día de la semana} {día}`. El emoticono es el del cielo más severo de las tres franjas, es decir, del cielo dominante de la mañana, la tarde y la noche (orden en 4.1), no el de horas sueltas. Las tormentas y la niebla de una sola hora no cambian el título: siguen teniendo su propio aviso ⚠️ en el cuerpo.
 
 ### 4.1 Línea 1: cielo, situación y avisos
 
@@ -67,7 +69,7 @@ El título es `{emoticono} {display_name de la estación} · {día de la semana}
 
 | Tipo | Códigos | Texto | Emoticono |
 |---|---|---|---|
-| despejado | 0, 1 | "soleado" de día, "despejado" de noche | ☀️ / 🌙 |
+| despejado | 0, 1 | "soleado" en la mañana y la tarde, "despejado" en la noche | ☀️ / 🌙 |
 | poco nuboso | 2 | "poco nuboso" | 🌤️ |
 | nuboso | 3 | "nuboso" | ☁️ |
 | niebla | 45, 48 | "niebla" | 🌫️ |
@@ -81,6 +83,8 @@ El título es `{emoticono} {display_name de la estación} · {día de la semana}
 - Si las tres franjas tienen el mismo tipo: "☀️ Soleado todo el día."
 - Si no, cada franja con su emoticono: "☀️ Soleado por la mañana, ☁️ nuboso por la tarde y 🌙 despejado por la noche."
 - "Despejado" de día y de noche cuentan como el mismo tipo.
+- Qué texto lleva ese tipo lo decide la franja, no la hora: la noche (20 a 24 h) dice "despejado" con 🌙; la mañana y la tarde dicen "soleado" con ☀️.
+- El emoticono del título es el del tipo más severo entre las tres franjas.
 
 **Situación**, según `pressure_msl` de 9 a 23 h:
 
@@ -95,8 +99,8 @@ Es una deducción por la presión, no un parte oficial.
 | Condición | Texto |
 |---|---|
 | algún código 95–99 | "⚠️ Ojo: tormentas por la {franja}." Si hay en más de una franja, "a lo largo del día". |
-| mínima de hoy ≤ 0 °C | "⚠️ Helada al amanecer." |
-| máxima de hoy ≥ 35 °C | "⚠️ Calor intenso." |
+| mínima de hoy ≤ 0 °C (redondeada, la de la línea 🌡️) | "⚠️ Helada al amanecer." |
+| máxima de hoy ≥ 35 °C (redondeada, la de la línea 🌡️) | "⚠️ Calor intenso." |
 | código 45 o 48 a las 9 o a las 10 h | "⚠️ Niebla por la mañana." |
 
 ### 4.2 Línea 2: temperatura (corregida con la estación)
@@ -146,6 +150,8 @@ Con `wind_speed_10m`, `wind_direction_10m` y `wind_gusts_10m` de 9 a 23 h:
 - `v` = viento medio máximo, con la dirección a esa hora en una de las 8 direcciones, escrita entera ("del norte", "del noroeste", …);
 - `r` = racha máxima y su hora.
 
+`v` y `r` se redondean a km/h enteros, y los umbrales de abajo (el de la racha, 20 km/h, y los del término) comparan esos valores redondeados, tal como se imprimen.
+
 Término según `v`, con los umbrales de AEMET:
 
 | `v` | Término |
@@ -177,7 +183,7 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
   - `theme_color` y `background_color` `#f5f7fb`;
   - iconos PNG de 192 y 512 px, y un 512 px "maskable".
 - `index.html`: enlaza el manifest y añade `apple-touch-icon` (PNG de 180 px).
-- Los iconos se generan desde `public/favicon.svg` con `design/render.ts`. El maskable usa una versión con margen y fondo, `design/icon-maskable.svg`.
+- Los iconos se generan con `design/render.ts` desde `design/app-icon.svg`: el logo del favicon al 72 % sobre un fondo opaco `#f5f7fb`. Un mismo archivo sirve para `any`, `maskable` y `apple-touch-icon`.
 - `public/sw.js`, el service worker:
   - `push`: lee el JSON `{ title, body, url }` y llama a `showNotification` con el icono.
   - `notificationclick`: si hay una ventana de la web abierta la enfoca; si no, abre `url`.
@@ -273,7 +279,7 @@ create table public.push_daily_runs (     -- un envío por día
 - Permisos para `service_role` (Vercel):
   - `push_subscriptions`: select, insert, delete, y update de `p256dh`, `auth` y `last_sent_at`;
   - `push_requests`: select e insert;
-  - `push_daily_runs`: insert, y update de `title`, `body`, `sent`, `failed` y `removed`.
+  - `push_daily_runs`: select, insert, y update de `title`, `body`, `sent`, `failed` y `removed`. El select hace falta para el `RETURNING` de la reserva y para el `WHERE` del update.
 
   Es el primer `delete` que tiene esta clave, y solo sobre `push_subscriptions`.
 - Extensión `pg_net` (en el esquema `extensions`).

@@ -115,6 +115,28 @@ vercel env pull --cwd frontend   # download the project's env vars, secret key i
 
 Then `pnpm dev:api` serves the dashboard and the local `/api` functions together. Run `vercel env pull` again whenever the env vars change in Vercel.
 
+### Daily forecast push
+
+Installed on a phone as an app (PWA), the dashboard can send a notification at 9:00 (Madrid) with the day's forecast, corrected with the station's readings. Supabase `pg_cron` calls `/api/cron/daily-forecast` at 07:05 and 08:05 UTC and only the run that falls at 9 in Madrid acts; it sends at most once a day. The design is in [`docs/superpowers/specs/2026-10-21-daily-forecast-push-design.md`](docs/superpowers/specs/2026-10-21-daily-forecast-push-design.md) (Spanish). To set it up:
+
+1. Generate the VAPID keys with `npx web-push generate-vapid-keys` and the cron secret with `openssl rand -hex 32`.
+2. Store `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address) and `CRON_SECRET` in Vercel, for Production and Preview. Redeploy: `VITE_*` is fixed at build time.
+3. In the Supabase SQL editor, store the same secret in the Vault: `select vault.create_secret('<CRON_SECRET>', 'cron_secret');`. Until it exists the cron job cannot authenticate.
+4. Check the text without sending anything:
+
+   ```sh
+   curl -X POST -H "Authorization: Bearer $CRON_SECRET" "https://gorraplanistas.vercel.app/api/cron/daily-forecast?mode=preview"
+   ```
+
+5. With the app installed and the alert switched on ("Avisarme cada mañana"), send a test notification with `?mode=send-now` (same request, same header).
+
+To see what was sent and whether the cron ran, in the Supabase SQL editor:
+
+```sql
+select * from push_daily_runs order by day desc;
+select jobname, status, start_time from cron.job_run_details order by start_time desc limit 10;
+```
+
 ## License
 
 [MIT](LICENSE)
