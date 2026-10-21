@@ -1,7 +1,7 @@
 // Top bar: name, the station picker, whether the station is sending, and a button to fetch
 // again now.
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
-import { CloudSun, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { StationInfo } from '../../shared/api-types';
 import { useClock } from '../lib/clock';
 import { isStale } from '../lib/format';
@@ -26,10 +26,10 @@ export function Header({ lastTs, station, stations, onStationChange }: HeaderPro
     <header className={`topbar ${picker ? 'has-picker' : ''}`}>
       <div className="brand">
         <div className="brand-mark">
-          <CloudSun size={24} strokeWidth={1.7} aria-hidden="true" />
+          <img src="/favicon.svg" alt="" width={32} height={32} />
         </div>
         <div className="brand-text">
-          <strong>Meteo Station</strong>
+          <strong>Gorraplanistas</strong>
           <span>Red de estaciones meteorológicas</span>
         </div>
       </div>

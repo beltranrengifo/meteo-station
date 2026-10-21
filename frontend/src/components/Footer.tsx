@@ -10,7 +10,7 @@ export function Footer({ lastTs }: { lastTs: string | null }) {
   return (
     <footer>
       <span>
-        METEO STATION <b>βeta</b>
+        GORRAPLANISTAS <b>βeta</b>
       </span>
       <span>
         Datos de la estación{isStale(lastTs, now) ? '' : ` · Próxima lectura en ${seconds} s`}
