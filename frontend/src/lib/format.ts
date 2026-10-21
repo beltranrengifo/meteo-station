@@ -98,6 +98,7 @@ export function isStale(lastTs: string | null, now: Temporal.Instant): boolean {
 
 const dayFormat = new Intl.DateTimeFormat('es-ES', { timeZone: TIME_ZONE, weekday: 'short', day: 'numeric' });
 const longDateFormat = new Intl.DateTimeFormat('es-ES', { timeZone: TIME_ZONE, weekday: 'long', day: 'numeric', month: 'long' });
+const fullDateFormat = new Intl.DateTimeFormat('es-ES', { timeZone: TIME_ZONE, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
 // "mar 13": short weekday and day of the month in Madrid.
 export function formatDay(iso: string): string {
@@ -110,14 +111,26 @@ export function forecastDayLabel(date: string, today: Temporal.PlainDate): strin
   if (day.equals(today)) {
     return 'Hoy';
   }
-  // Midday: a time every day has, whatever the clock change.
-  const label = formatDay(day.toZonedDateTime({ timeZone: TIME_ZONE, plainTime: '12:00' }).toInstant().toString());
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  return capitalize(formatDay(middayOf(day)));
 }
 
 // "martes, 13 de octubre" in Madrid.
 export function formatLongDate(iso: string): string {
   return longDateFormat.format(new Date(iso));
+}
+
+// "Miércoles, 21 de octubre de 2026" for a Madrid date (YYYY-MM-DD).
+export function formatFullDate(date: string): string {
+  return capitalize(fullDateFormat.format(new Date(middayOf(Temporal.PlainDate.from(date)))));
+}
+
+// Midday: a time every day has, whatever the clock change.
+function middayOf(day: Temporal.PlainDate): string {
+  return day.toZonedDateTime({ timeZone: TIME_ZONE, plainTime: '12:00' }).toInstant().toString();
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // "07:12" when it is the same Madrid day as now, otherwise "mar 13, 07:12".

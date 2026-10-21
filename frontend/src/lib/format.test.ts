@@ -1,7 +1,7 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
 import {
-  compassPoint, forecastDayLabel, formatAge, fromMadridWallClockMs, formatDay, formatLongDate, formatShortDateTime, formatTime, formatWhen, fromPickerDate, greeting, isStale,
+  compassPoint, forecastDayLabel, formatAge, fromMadridWallClockMs, formatDay, formatFullDate, formatLongDate, formatShortDateTime, formatTime, formatWhen, fromPickerDate, greeting, isStale,
   msToKmh, timeZoneName, toPickerDate,
   toMadridWallClockMs, wallClockAxisLabel, wallClockLabel, wallClockSpanLabel,
 } from './format';
@@ -138,5 +138,15 @@ describe('forecastDayLabel', () => {
 
   it('works on the day the clock goes back', () => {
     expect(forecastDayLabel('2026-10-25', today)).toBe('Dom 25');
+  });
+});
+
+describe('formatFullDate', () => {
+  it('gives the capitalised weekday, day, month and year', () => {
+    expect(formatFullDate('2026-10-21')).toBe('Miércoles, 21 de octubre de 2026');
+  });
+
+  it('keeps the date on the day the clock goes back', () => {
+    expect(formatFullDate('2026-10-25')).toBe('Domingo, 25 de octubre de 2026');
   });
 });

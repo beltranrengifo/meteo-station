@@ -335,7 +335,8 @@ footer .attribution a { color: inherit; }
 
 /* Today's notification, in the forecast tab */
 .daily-summary { margin-bottom: 1.5rem; padding: 1.1rem 1.15rem; border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 16px; background: var(--surface); }
-.daily-summary h3 { margin: .35rem 0 .75rem; font-size: 1.05rem; }
+.daily-summary h3 { margin: .35rem 0 0; font-size: 1.05rem; }
+.daily-summary-date { margin: .15rem 0 .75rem; color: var(--muted); font-size: .9rem; }
 .daily-summary ul { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
 .daily-summary li { display: flex; align-items: flex-start; gap: .6rem; color: var(--foreground); font-size: .9rem; line-height: 1.45; }
 .daily-summary li.warning { padding: .45rem .6rem; border-radius: 10px; background: var(--active); font-weight: 600; }

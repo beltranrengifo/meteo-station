@@ -3,10 +3,11 @@
 // day's notification.
 import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useDailySummary } from '../lib/api';
+import { useDailySummary, useStations } from '../lib/api';
 import { dismissSummary, isSummaryDismissed, summaryRows } from '../lib/daily-summary';
-import { formatTime } from '../lib/format';
+import { formatFullDate, formatTime } from '../lib/format';
 import { alertState } from '../lib/push';
+import { chooseStation } from '../lib/station';
 
 export function DailySummary() {
   const [subscribed, setSubscribed] = useState(false);
@@ -27,6 +28,9 @@ export function DailySummary() {
   }, []);
 
   const { data } = useDailySummary(subscribed);
+  // The notification is about the default station, whichever one the dashboard shows.
+  const stations = useStations();
+  const place = stations.data && chooseStation(stations.data, null)?.name;
   if (!data || closedDay === data.day || isSummaryDismissed(data.day)) {
     return null;
   }
@@ -39,7 +43,8 @@ export function DailySummary() {
   return (
     <section className="daily-summary" aria-labelledby="daily-summary-title">
       <span className="eyebrow">El aviso de hoy · {formatTime(data.sentAt)}</span>
-      <h3 id="daily-summary-title">{data.title}</h3>
+      <h3 id="daily-summary-title">{place ?? 'Hoy'}</h3>
+      <p className="daily-summary-date">{formatFullDate(data.day)}</p>
       <ul>
         {summaryRows(data.body).map((row, i) => (
           <li key={i} className={row.warning ? 'warning' : undefined}>
