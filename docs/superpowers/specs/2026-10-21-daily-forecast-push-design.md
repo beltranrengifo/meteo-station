@@ -84,7 +84,6 @@ El título es `{emoticono} {display_name de la estación} · {día de la semana}
 - Si no, cada franja con su emoticono: "☀️ Soleado por la mañana, ☁️ nuboso por la tarde y 🌙 despejado por la noche."
 - "Despejado" de día y de noche cuentan como el mismo tipo.
 - Qué texto lleva ese tipo lo decide la franja, no la hora: la noche (20 a 24 h) dice "despejado" con 🌙; la mañana y la tarde dicen "soleado" con ☀️.
-- El emoticono del título es el del tipo más severo entre las tres franjas.
 
 **Situación**, según `pressure_msl` de 9 a 23 h:
 
@@ -277,7 +276,7 @@ create table public.push_daily_runs (     -- un envío por día
 
 - RLS activado en las tres tablas, sin políticas: el navegador (anon) no accede.
 - Permisos para `service_role` (Vercel):
-  - `push_subscriptions`: select, insert, delete, y update de `p256dh`, `auth` y `last_sent_at`;
+  - `push_subscriptions`: select, insert, delete, y update de `endpoint`, `p256dh`, `auth` y `last_sent_at`;
   - `push_requests`: select e insert;
   - `push_daily_runs`: select, insert, y update de `title`, `body`, `sent`, `failed` y `removed`. El select hace falta para el `RETURNING` de la reserva y para el `WHERE` del update.
 

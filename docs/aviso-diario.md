@@ -27,7 +27,7 @@ Ejemplo:
 8. Envía el mensaje a todas las suscripciones, de 10 en 10.
 9. Borra las suscripciones a las que el servicio de push responde 404 o 410. Guarda el texto y los recuentos en `push_daily_runs`.
 
-Ficheros (todos bajo `frontend/`, salvo la migración):
+Ficheros (los que no empiezan por `backend/` están en `frontend/`):
 
 | Fichero | Para qué |
 |---|---|
@@ -44,7 +44,7 @@ Ficheros (todos bajo `frontend/`, salvo la migración):
 | `public/manifest.webmanifest` | Datos de la app instalada. |
 | `src/lib/push.ts` | Lógica de la suscripción en el móvil. |
 | `src/components/DailyAlert.tsx` | El bloque "Aviso diario" de la pestaña de previsión. |
-| `../backend/supabase/migrations/20261021100000_push_notifications.sql` | Tablas, permisos y trabajos de `pg_cron`. |
+| `backend/supabase/migrations/20261021100000_push_notifications.sql` | Tablas, permisos y trabajos de `pg_cron`. |
 
 ## 3. Cómo se corrigen las temperaturas
 
@@ -142,8 +142,10 @@ select count(*) from push_subscriptions;
 `cron.job_run_details` solo dice si la llamada salió. La respuesta de Vercel (401, 200, 502…) queda en la tabla de `pg_net`:
 
 ```sql
-select status_code, content, created from net._http_response order by created desc limit 5;
+select status_code, timed_out, error_msg, content, created from net._http_response order by created desc limit 5;
 ```
+
+`pg_net` guarda las respuestas unas 6 horas: ejecútala poco después de las 9:05. Si la petición caducó o no conectó, `status_code` sale vacío: mira `timed_out` y `error_msg`.
 
 El envío con `?mode=send-now` no escribe en `push_daily_runs`.
 
@@ -169,7 +171,8 @@ No hay cuentas de usuario. **La suscripción vive en el propio móvil.**
 | "Tu móvil no admite avisos" | En iPhone, iOS anterior a 16.4; o el navegador no tiene Push | Actualiza iOS. |
 | "Has bloqueado las notificaciones" | El permiso está denegado | Actívalo en los ajustes del móvil. |
 | "No se pudo completar. Comprueba la conexión…" | Sin red; o 429 (más de 10 peticiones en una hora desde tu IP); o falta `VITE_VAPID_PUBLIC_KEY` en el build; o el servidor falló | Espera y reintenta; revisa la variable y vuelve a desplegar; mira los registros de Vercel. |
-| No llega a las 9:05 | Falta el secreto `cron_secret` en el Vault, o es distinto de `CRON_SECRET` de Vercel (401) | Revisa `net._http_response` y `cron.job_run_details`. Vuelve a crear el secreto con el mismo valor. |
+| "No se pudo completar" al apuntarte, y el servidor responde 503 | Se alcanzó el tope de 1000 suscripciones | Borra suscripciones que ya no se usen de `push_subscriptions`. |
+| No llega a las 9:05 | Falta el secreto `cron_secret` en el Vault, o es distinto de `CRON_SECRET` de Vercel (401) | Revisa `net._http_response` y `cron.job_run_details`. Si falta, créalo (paso 3 de la configuración). Si existe pero es distinto, actualízalo (no se puede crear dos veces): `select vault.update_secret((select id from vault.secrets where name = 'cron_secret'), '<CRON_SECRET>');` |
 | No llega a las 9:05 | `push_daily_runs` ya tiene la fila de hoy (responde "already sent today") | Es lo normal tras un envío. Si el envío se cortó a medias, el día no se reintenta: se prefiere perder un aviso a mandarlo dos veces. |
 | No llega a las 9:05 | No hay suscripciones, o se borraron por 404 o 410 | `select count(*) from push_subscriptions;` y vuelve a apuntarte. |
 | Responde 502 "forecast unavailable" | Open-Meteo no responde (o falta una estación listada o sus coordenadas) | Ese día no hay aviso: el día no llega a reservarse, y no se reintenta solo. Con `?mode=send-now` puedes enviarlo a mano cuando vuelva. |
