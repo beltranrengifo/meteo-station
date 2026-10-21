@@ -6,6 +6,7 @@ import { TIME_ZONE } from './params.js';
 import type { Coordinates } from './station-choice.js';
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+const PREVIOUS_RUNS_URL = 'https://previous-runs-api.open-meteo.com/v1/forecast';
 const TIMEOUT_MS = 5000;
 
 // The parts of the Open-Meteo response we read. Times are local (TIME_ZONE), with no offset.
@@ -131,4 +132,126 @@ export async function fetchSky(coordinates: Coordinates): Promise<SkyResponse> {
 
 export async function fetchForecast(coordinates: Coordinates): Promise<ForecastResponse> {
   return toForecast(await getOpenMeteo<OpenMeteoWeek>(weekUrl(coordinates)), Temporal.Now.instant());
+}
+
+// One hour of today's forecast for the 9:00 notification: hour h covers h:00 to h+1:00 in Madrid.
+// Instant values (temperature, sky, pressure, wind) are Open-Meteo's at h:00; precipitation, its
+// chance and gusts are its values at h+1:00, which cover the hour before that time.
+export interface TodayHour {
+  hour: number; // Madrid hour, 0-23 (2 twice when summer time ends)
+  tempC: number;
+  weatherCode: number;
+  isDay: boolean;
+  pressureHpa: number; // at sea level
+  windKmh: number;
+  windDirDeg: number; // where the wind comes from
+  gustKmh: number | null;
+  precipMm: number | null;
+  precipProbabilityPct: number | null;
+}
+
+export interface OpenMeteoToday {
+  hourly: {
+    time: number[];
+    temperature_2m: number[];
+    weather_code: number[];
+    is_day: number[];
+    pressure_msl: number[];
+    wind_speed_10m: number[];
+    wind_direction_10m: number[];
+    wind_gusts_10m: (number | null)[];
+    precipitation: (number | null)[];
+    precipitation_probability: (number | null)[];
+  };
+}
+
+export function todayUrl({ latitude, longitude }: Coordinates): string {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    hourly: 'temperature_2m,weather_code,is_day,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,precipitation_probability',
+    timezone: TIME_ZONE,
+    timeformat: 'unixtime',
+    wind_speed_unit: 'kmh',
+    // Tomorrow's 00:00 holds the rain and gusts of today's last hour.
+    forecast_days: '2',
+  });
+  return `${FORECAST_URL}?${params}`;
+}
+
+export function toTodayHours(data: OpenMeteoToday, today: Temporal.PlainDate): TodayHour[] {
+  const { hourly } = data;
+  const hours: TodayHour[] = [];
+  hourly.time.forEach((t, i) => {
+    const local = Temporal.Instant.fromEpochMilliseconds(t * 1000).toZonedDateTimeISO(TIME_ZONE);
+    if (!local.toPlainDate().equals(today)) {
+      return;
+    }
+    hours.push({
+      hour: local.hour,
+      tempC: hourly.temperature_2m[i],
+      weatherCode: hourly.weather_code[i],
+      isDay: hourly.is_day[i] === 1,
+      pressureHpa: hourly.pressure_msl[i],
+      windKmh: hourly.wind_speed_10m[i],
+      windDirDeg: hourly.wind_direction_10m[i],
+      gustKmh: hourly.wind_gusts_10m[i + 1] ?? null,
+      precipMm: hourly.precipitation[i + 1] ?? null,
+      precipProbabilityPct: hourly.precipitation_probability[i + 1] ?? null,
+    });
+  });
+  return hours;
+}
+
+// What the model run of the day before forecast, hour by hour (Open-Meteo's Previous Runs API).
+export interface OpenMeteoPreviousRuns {
+  hourly: { time: number[]; temperature_2m_previous_day1: (number | null)[] };
+}
+
+export function previousRunsUrl({ latitude, longitude }: Coordinates): string {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    hourly: 'temperature_2m_previous_day1',
+    timezone: TIME_ZONE,
+    timeformat: 'unixtime',
+    past_days: '1',
+    forecast_days: '1',
+  });
+  return `${PREVIOUS_RUNS_URL}?${params}`;
+}
+
+// The highest temperature forecast for `day` (Madrid) by the run of the day before.
+export function previousDayForecastMax(data: OpenMeteoPreviousRuns, day: Temporal.PlainDate): number | null {
+  const { time, temperature_2m_previous_day1: temps } = data.hourly;
+  let max: number | null = null;
+  time.forEach((t, i) => {
+    const temp = temps[i];
+    const date = Temporal.Instant.fromEpochMilliseconds(t * 1000).toZonedDateTimeISO(TIME_ZONE).toPlainDate();
+    if (temp !== null && date.equals(day) && (max === null || temp > max)) {
+      max = temp;
+    }
+  });
+  return max;
+}
+
+// Today's hours, with one retry. Throws without hours 9 to 23: the message needs them all.
+export async function fetchToday(coordinates: Coordinates, today: Temporal.PlainDate): Promise<TodayHour[]> {
+  const url = todayUrl(coordinates);
+  const data = await getOpenMeteo<OpenMeteoToday>(url).catch(() => getOpenMeteo<OpenMeteoToday>(url));
+  const hours = toTodayHours(data, today);
+  if (!hours.some((h) => h.hour === 9) || !hours.some((h) => h.hour === 23)) {
+    throw new Error('Open-Meteo: today is incomplete');
+  }
+  return hours;
+}
+
+// Optional: without it the correction uses only the 9:00 reading.
+export async function fetchYesterdayForecastMax(coordinates: Coordinates, yesterday: Temporal.PlainDate): Promise<number | null> {
+  try {
+    return previousDayForecastMax(await getOpenMeteo<OpenMeteoPreviousRuns>(previousRunsUrl(coordinates)), yesterday);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 }
