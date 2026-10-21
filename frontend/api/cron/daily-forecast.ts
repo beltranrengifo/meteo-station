@@ -7,7 +7,7 @@ import { dailyMessage, type DailyResult } from '../../server/daily-data.js';
 import { isSendHour } from '../../server/daily-message.js';
 import { noStore, serverError } from '../../server/http.js';
 import { localToday } from '../../server/params.js';
-import { sendToAll } from '../../server/push-sender.js';
+import { sendToAll, vapidDetails, type VapidDetails } from '../../server/push-sender.js';
 import { allSubscriptions, claimDay, deleteSubscriptions, markSent, recordRun } from '../../server/push-store.js';
 import { bearerMatches } from '../../server/push-validation.js';
 
@@ -27,6 +27,16 @@ export async function POST(request: Request): Promise<Response> {
     return noStore({ status: 'not 9:00 in Madrid' });
   }
 
+  // The keys are checked before the data and the claim: a missing variable must not burn the day.
+  let vapid: VapidDetails | null = null; // only preview leaves it null, and preview never sends
+  if (mode !== 'preview') {
+    try {
+      vapid = vapidDetails();
+    } catch (error) {
+      return serverError(error);
+    }
+  }
+
   // The data comes before the claim: if Open-Meteo is down nothing is claimed or sent.
   let daily: DailyResult;
   try {
@@ -44,7 +54,11 @@ export async function POST(request: Request): Promise<Response> {
     if (mode === null && !(await claimDay(today))) {
       return noStore({ status: 'already sent today' });
     }
-    const result = await sendToAll(await allSubscriptions(), JSON.stringify({ ...daily.message, url: OPEN_URL }));
+    const result = await sendToAll(
+      await allSubscriptions(),
+      JSON.stringify({ ...daily.message, url: OPEN_URL }),
+      vapid!,
+    );
     await deleteSubscriptions(result.gone);
     await markSent(result.sent, now);
     const counts = { sent: result.sent.length, failed: result.failed, removed: result.gone.length };
