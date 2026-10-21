@@ -1,14 +1,15 @@
 // The charts for the chosen range (2 h, Hoy, 24 h, 7 días or custom). Every title names the
 // range, and the time axis spans exactly the range's from..to, in Madrid time.
-import type { BarSeriesOption, EChartsOption, LineSeriesOption, TooltipComponentOption } from 'echarts';
+import type { BarSeriesOption, EChartsOption, LineSeriesOption, ScatterSeriesOption, TooltipComponentOption } from 'echarts';
 import { Suspense, lazy, useMemo, type ReactNode } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import {
-  TIME_ZONE, formatDay, formatShortDateTime, fromMadridWallClockMs, formatTime, formatWhen, toMadridWallClockMs, wallClockAxisLabel, wallClockLabel,
+  TIME_ZONE, compassPoint, formatDay, formatShortDateTime, fromMadridWallClockMs, formatTime, formatWhen, toMadridWallClockMs, wallClockAxisLabel,
+  wallClockLabel, wallClockSpanLabel,
 } from '../lib/format';
 import {
-  RANGES, bucketEnd, lastRain, linePoints, rainBuckets, rainUnitFor, rangeExtreme, totalRain,
-  type RainBucket, type RainUnit, type RangeKey, type RangeSeries, type Sample,
+  RANGES, bucketEnd, lastRain, linePoints, rainBuckets, rainUnitFor, rangeExtreme, timePoints, totalRain, windBuckets, windStepFor,
+  type RainBucket, type RainUnit, type RangeKey, type RangeSeries, type Sample, type WindBucket,
 } from '../lib/series';
 import { COLORS, Chart, useCanBrush } from './Chart';
 import { ChartsLoading, Spinner } from './Loading';
@@ -109,6 +110,107 @@ function rainOption(buckets: RainBucket[], unit: RainUnit): EChartsOption {
   };
 }
 
+// At most this many wind points, and direction arrows, across a card.
+const WIND_POINTS = 180;
+const WIND_ARROWS = 30;
+// Below this mean (km/h) the vane just rests where it was: no direction.
+const CALM_KMH = 1;
+// An arrow pointing up (north), turned to where the wind blows.
+const ARROW = 'path://M0,-8 L5,1 L1.4,0 L1.4,8 L-1.4,8 L-1.4,0 L-5,1 Z';
+
+const WIND_STEP_LABELS: Record<number, string> = { 10: '10 min', 30: '30 min', 60: '1 h', 180: '3 h', 360: '6 h', 1440: '1 día' };
+
+function hasDirection(bucket: WindBucket): boolean {
+  return bucket.dir !== null && bucket.avg !== null && bucket.avg >= CALM_KMH;
+}
+
+// The mean wind as a line, the highest gust of each stretch as dots, and a row of arrows above
+// showing where the wind blows. Stretches suit the range (see windStepFor).
+function windOption(series: RangeSeries, step: number): EChartsOption {
+  const buckets = windBuckets(series, step);
+  const byTime = new Map(buckets.map((b) => [toMadridWallClockMs(b.ts), b]));
+  const arrowStep = windStepFor(series, WIND_ARROWS);
+  const arrows = windBuckets(series, arrowStep).filter(hasDirection);
+  const xRange = { min: toMadridWallClockMs(series.from), max: toMadridWallClockMs(series.to) };
+  const formatter: Formatter = (params) => {
+    const list = Array.isArray(params) ? params : [params];
+    const x = (list[0].value as number[])[0];
+    const bucket = byTime.get(x);
+    if (!bucket) {
+      return '';
+    }
+    const marker = (name: string) => list.find((p) => p.seriesName === name)?.marker ?? '';
+    const kmh = (value: number | null) => (value === null ? '—' : `${value.toFixed(1)} km/h`);
+    const gustAt = step > 1 && bucket.gustAt ? ` (${formatTime(bucket.gustAt)})` : '';
+    return [
+      wallClockSpanLabel(x, step),
+      `${marker('Medio')} Medio: <b>${kmh(bucket.avg)}</b>`,
+      `${marker('Racha máxima')} Racha máxima: <b>${kmh(bucket.gust)}</b>${gustAt}`,
+      `Dirección: <b>${hasDirection(bucket) ? `del ${compassPoint(bucket.dir)}` : 'calma'}</b>`,
+    ].join('<br/>');
+  };
+  return {
+    useUTC: true,
+    grid: [
+      { left: 44, right: 12, top: 50, bottom: 24 },
+      { left: 44, right: 12, top: 24, height: 18 },
+    ],
+    legend: {
+      top: 0,
+      left: 0,
+      itemWidth: 12,
+      itemHeight: 6,
+      data: [{ name: 'Medio', icon: 'roundRect' }, { name: 'Racha máxima', icon: 'circle' }],
+    },
+    tooltip: { trigger: 'axis', formatter },
+    xAxis: [
+      { type: 'time', ...xRange, axisLabel: { formatter: (value: number) => wallClockAxisLabel(value), hideOverlap: true } },
+      { type: 'time', ...xRange, gridIndex: 1, show: false, axisPointer: { show: false, triggerTooltip: false } },
+    ],
+    yAxis: [
+      { type: 'value', min: 0 },
+      { type: 'value', gridIndex: 1, show: false, min: 0, max: 1 },
+    ],
+    series: [
+      {
+        name: 'Medio',
+        type: 'line',
+        showSymbol: false,
+        smooth: 0.2,
+        lineStyle: { width: 1.8, color: COLORS.blue },
+        itemStyle: { color: COLORS.blue },
+        areaStyle: { color: COLORS.blue, opacity: 0.12 },
+        data: timePoints(buckets, step, (b) => b.avg),
+      } satisfies LineSeriesOption,
+      {
+        name: 'Racha máxima',
+        type: 'scatter',
+        symbolSize: 5,
+        itemStyle: { color: COLORS.amber, opacity: 0.9 },
+        data: buckets.filter((b) => b.gust !== null).map((b) => [toMadridWallClockMs(b.ts), b.gust]),
+      } satisfies ScatterSeriesOption,
+      {
+        name: 'Dirección',
+        type: 'scatter',
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        silent: true,
+        tooltip: { show: false },
+        symbol: ARROW,
+        symbolSize: 13,
+        symbolKeepAspect: true,
+        itemStyle: { color: COLORS.blue, opacity: 0.75 },
+        // Centered on its stretch. The vane gives where the wind comes from; the arrow points
+        // the other way, where it goes. ECharts turns symbols counterclockwise.
+        data: arrows.map((b) => ({
+          value: [toMadridWallClockMs(b.ts) + arrowStep * 30_000, 0.5],
+          symbolRotate: -(b.dir! + 180),
+        })),
+      } satisfies ScatterSeriesOption,
+    ],
+  };
+}
+
 interface ChartCardProps {
   title: string;
   unit: string;
@@ -150,6 +252,7 @@ function Charts({ series, onSelectRange }: ChartsProps) {
     const tempMax = rangeExtreme(series, 'max', (s) => s.tempMax, (s) => s.tempMaxAt);
     const gust = rangeExtreme(series, 'max', (s) => s.windGust, (s) => s.windGustAt);
     const rainAt = lastRain(series);
+    const windStep = windStepFor(series, WIND_POINTS);
     return [
       {
         title: 'Temperatura',
@@ -175,17 +278,12 @@ function Charts({ series, onSelectRange }: ChartsProps) {
       {
         title: 'Viento',
         unit: 'km/h',
-        note: gust && gust.value > 0 ? `Racha máxima ${gust.value.toFixed(0)} km/h (${formatWhen(gust.at, now)})` : 'Sin rachas',
-        option: lineOption(
-          series,
-          [
-            { name: 'Medio', pick: (s) => s.windAvg, color: COLORS.blue },
-            { name: 'Racha', pick: (s) => s.windGust, color: COLORS.amber },
-          ],
-          'km/h',
-          1,
-          false,
-        ),
+        note: [
+          gust && gust.value > 0 ? `Racha máxima ${gust.value.toFixed(0)} km/h (${formatWhen(gust.at, now)})` : 'Sin rachas',
+          WIND_STEP_LABELS[windStep] && `medias de ${WIND_STEP_LABELS[windStep]}`,
+        ].filter(Boolean).join(' · '),
+        option: windOption(series, windStep),
+        height: 215,
       },
       {
         title: 'Presión atmosférica',
@@ -223,7 +321,7 @@ function Charts({ series, onSelectRange }: ChartsProps) {
     <div className="charts-grid">
       {cards.map((card) => (
         <ChartCard key={card.title} title={card.title} unit={card.unit} note={card.note}>
-          <Chart option={card.option} onBrush={'axis' in card ? onBarsBrush : onTimeBrush} />
+          <Chart option={card.option} height={'height' in card ? card.height : undefined} onBrush={'axis' in card ? onBarsBrush : onTimeBrush} />
         </ChartCard>
       ))}
     </div>

@@ -67,6 +67,19 @@ export function wallClockLabel(ms: number): string {
   return `${wallDayFormat.format(ms)}, ${wallClock(ms).toPlainTime().toString({ smallestUnit: 'minute' })}`;
 }
 
+// Tooltip heading for a stretch of `minutes` starting at a wall-clock ms: "mar 13, 07:10 – 07:20",
+// or just the day for a whole day.
+export function wallClockSpanLabel(ms: number, minutes: number): string {
+  if (minutes <= 1) {
+    return wallClockLabel(ms);
+  }
+  if (minutes >= 1440) {
+    return wallDayFormat.format(ms);
+  }
+  const end = wallClock(ms + minutes * 60_000).toPlainTime().toString({ smallestUnit: 'minute' });
+  return `${wallClockLabel(ms)} – ${end}`;
+}
+
 // One of the 8 points of the vane, in Spanish (O = oeste).
 export function compassPoint(degrees: number | null): string {
   if (degrees === null) {

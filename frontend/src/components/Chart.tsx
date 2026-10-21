@@ -1,6 +1,6 @@
 // ECharts wrapper: registers only the chart types and components we use (smaller bundle)
 // and follows the system light/dark theme, with themes matching the dashboard's CSS tokens.
-import { BarChart, LineChart } from 'echarts/charts';
+import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
 import { BrushComponent, GridComponent, LegendComponent, ToolboxComponent, TooltipComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -10,7 +10,7 @@ import ReactEChartsCore from 'echarts-for-react/esm/core';
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 
 // The brush needs the toolbox registered, even with no toolbox shown: without it no brushEnd fires.
-echarts.use([BarChart, LineChart, BrushComponent, ToolboxComponent, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([BarChart, LineChart, ScatterChart, BrushComponent, ToolboxComponent, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
 
 // Series colors, the same in both modes (index.css: --blue, --teal, --violet, --amber).
 export const COLORS = {

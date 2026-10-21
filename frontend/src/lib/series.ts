@@ -33,6 +33,7 @@ export interface Sample {
   windAvg: number | null; // km/h
   windGust: number | null; // km/h
   windGustAt: string | null;
+  windDir: number | null; // degrees the wind comes from; the hour's vector mean for hourly data
   dewPoint: number | null;
   rain: number; // mm in this sample's minute or hour
 }
@@ -65,6 +66,7 @@ export function fromReadings(readings: ReadingRow[], from: string, to: string): 
       windAvg: msToKmh(r.wind_avg_ms),
       windGust: msToKmh(r.wind_gust_ms),
       windGustAt: r.ts,
+      windDir: r.wind_dir_deg,
       dewPoint: dewPoint(r.temp_c, r.humidity_pct),
       rain: r.rain_mm,
     })),
@@ -93,6 +95,7 @@ export function fromHours(hours: HourlyRow[], from: string, to: string): RangeSe
       windAvg: msToKmh(h.wind_avg_ms),
       windGust: msToKmh(h.wind_gust_max),
       windGustAt: h.wind_gust_max_at,
+      windDir: h.wind_dir_deg,
       dewPoint: dewPoint(h.temp_avg, h.humidity_avg),
       rain: h.rain_mm ?? 0,
     })),
@@ -131,14 +134,23 @@ const ms = (iso: string) => Temporal.Instant.from(iso).epochMilliseconds;
 // [Madrid wall-clock ms, value] pairs for an ECharts time axis. Where two samples are more than
 // two steps apart, a null point breaks the line, so a time the station was off is not bridged.
 export function linePoints(series: RangeSeries, pick: (s: Sample) => number | null): [number, number | null][] {
-  const maxGapMs = 2 * series.stepMinutes * 60_000;
+  return timePoints(series.samples, series.stepMinutes, pick);
+}
+
+// The same for anything with a `ts`, `stepMinutes` apart.
+export function timePoints<T extends { ts: string }>(
+  items: T[],
+  stepMinutes: number,
+  pick: (item: T) => number | null,
+): [number, number | null][] {
+  const maxGapMs = 2 * stepMinutes * 60_000;
   const points: [number, number | null][] = [];
-  series.samples.forEach((sample, i) => {
-    const previous = series.samples[i - 1];
-    if (previous && ms(sample.ts) - ms(previous.ts) > maxGapMs) {
+  items.forEach((item, i) => {
+    const previous = items[i - 1];
+    if (previous && ms(item.ts) - ms(previous.ts) > maxGapMs) {
       points.push([toMadridWallClockMs(previous.ts) + 1, null]);
     }
-    points.push([toMadridWallClockMs(sample.ts), pick(sample)]);
+    points.push([toMadridWallClockMs(item.ts), pick(item)]);
   });
   return points;
 }
@@ -222,4 +234,70 @@ export function totalRain(series: RangeSeries): number {
 // When it last rained in the range: the minute, or the hour for hourly data.
 export function lastRain(series: RangeSeries): string | null {
   return series.samples.findLast((s) => s.rain > 0)?.ts ?? null;
+}
+
+// Wind for the chart, in stretches that suit the range: one-minute readings are too gusty to
+// read over a day (1440 points in a card). Ten-minute means are the meteorological standard.
+export interface WindBucket {
+  ts: string; // instant the stretch begins
+  avg: number | null; // km/h, mean of the samples
+  gust: number | null; // km/h, the highest gust
+  gustAt: string | null;
+  dir: number | null; // degrees the wind comes from, vector mean as in the hourly stats
+}
+
+// Stretch lengths in minutes, finest first. From an hour up they follow the Madrid clock.
+const WIND_STEPS = [1, 10, 30, 60, 180, 360, 1440];
+
+// The finest stretch, never finer than the data, that leaves at most `maxBuckets` in the range.
+export function windStepFor(series: RangeSeries, maxBuckets: number): number {
+  const minutes = Temporal.Instant.from(series.from).until(Temporal.Instant.from(series.to)).total('minutes');
+  return WIND_STEPS.find((step) => step >= series.stepMinutes && minutes / step <= maxBuckets) ?? WIND_STEPS.at(-1)!;
+}
+
+function windStart(iso: string, step: number): Temporal.Instant {
+  const instant = Temporal.Instant.from(iso);
+  if (step < 60) {
+    return instant.round({ smallestUnit: 'minute', roundingIncrement: step, roundingMode: 'floor' });
+  }
+  const local = instant.toZonedDateTimeISO(TIME_ZONE);
+  return step === 1440
+    ? local.startOfDay().toInstant()
+    : local.round({ smallestUnit: 'hour', roundingIncrement: step / 60, roundingMode: 'floor' }).toInstant();
+}
+
+// Mean direction of unit vectors, so 350° and 10° average to 0°, not 180°.
+function meanDirection(degrees: number[]): number | null {
+  if (degrees.length === 0) {
+    return null;
+  }
+  const rad = degrees.map((d) => (d * Math.PI) / 180);
+  const sin = rad.reduce((total, r) => total + Math.sin(r), 0);
+  const cos = rad.reduce((total, r) => total + Math.cos(r), 0);
+  return Math.round(((Math.atan2(sin, cos) * 180) / Math.PI + 360) % 360) % 360;
+}
+
+// Stretches with no samples are left out: the chart breaks the line there.
+export function windBuckets(series: RangeSeries, step: number): WindBucket[] {
+  const groups = new Map<string, Sample[]>();
+  for (const sample of series.samples) {
+    const key = windStart(sample.ts, step).toString();
+    const group = groups.get(key);
+    if (group) {
+      group.push(sample);
+    } else {
+      groups.set(key, [sample]);
+    }
+  }
+  return [...groups].map(([ts, samples]) => {
+    const avgs = samples.map((s) => s.windAvg).filter((v) => v !== null);
+    const gust = rangeExtreme({ ...series, samples }, 'max', (s) => s.windGust, (s) => s.windGustAt);
+    return {
+      ts,
+      avg: avgs.length > 0 ? avgs.reduce((total, v) => total + v, 0) / avgs.length : null,
+      gust: gust?.value ?? null,
+      gustAt: gust?.at ?? null,
+      dir: meanDirection(samples.map((s) => s.windDir).filter((v) => v !== null)),
+    };
+  });
 }

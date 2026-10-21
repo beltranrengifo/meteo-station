@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compassPoint, forecastDayLabel, formatAge, fromMadridWallClockMs, formatDay, formatLongDate, formatShortDateTime, formatTime, formatWhen, fromPickerDate, greeting, isStale,
   msToKmh, timeZoneName, toPickerDate,
-  toMadridWallClockMs, wallClockAxisLabel, wallClockLabel,
+  toMadridWallClockMs, wallClockAxisLabel, wallClockLabel, wallClockSpanLabel,
 } from './format';
 
 describe('msToKmh', () => {
@@ -88,6 +88,13 @@ describe('wall-clock labels', () => {
     expect(wallClockAxisLabel(wall('2026-10-13T22:00:00Z'))).toBe('mié 14');
     expect(wallClockAxisLabel(wall('2026-10-14T05:00:00Z'))).toBe('07:00');
     expect(wallClockLabel(wall('2026-10-14T05:12:00Z'))).toBe('mié 14, 07:12');
+  });
+  it('name a stretch by its start and end, or by the day', () => {
+    const wall = (iso: string) => toMadridWallClockMs(iso);
+    expect(wallClockSpanLabel(wall('2026-10-14T05:12:00Z'), 1)).toBe('mié 14, 07:12');
+    expect(wallClockSpanLabel(wall('2026-10-14T05:10:00Z'), 10)).toBe('mié 14, 07:10 – 07:20');
+    expect(wallClockSpanLabel(wall('2026-10-14T16:00:00Z'), 360)).toBe('mié 14, 18:00 – 00:00');
+    expect(wallClockSpanLabel(wall('2026-10-13T22:00:00Z'), 1440)).toBe('mié 14');
   });
 });
 

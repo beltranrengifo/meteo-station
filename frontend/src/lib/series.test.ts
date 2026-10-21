@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { HourlyRow, ReadingRow } from '../../shared/api-types';
-import { fromHours, fromReadings, lastHours, lastRain, sliceSeries, linePoints, rainBuckets, rainUnitFor, rangeExtreme, totalRain } from './series';
+import {
+  fromHours, fromReadings, lastHours, lastRain, sliceSeries, linePoints, rainBuckets, rainUnitFor, rangeExtreme, totalRain, windBuckets, windStepFor,
+} from './series';
 
 function reading(ts: string, values: Partial<ReadingRow> = {}): ReadingRow {
   return {
@@ -175,5 +177,40 @@ describe('extremes and rain', () => {
   it('adds up the rain and finds when it last rained', () => {
     expect(totalRain(series)).toBe(0.5588);
     expect(lastRain(series)).toBe('2026-10-14T13:00:00Z');
+  });
+});
+
+describe('windBuckets', () => {
+  it('averages the wind, keeps the highest gust and averages the direction as vectors', () => {
+    const series = fromReadings(
+      [
+        reading('2026-10-14T06:00:00Z', { wind_avg_ms: 1, wind_gust_ms: 2, wind_dir_deg: 350 }),
+        reading('2026-10-14T06:05:00Z', { wind_avg_ms: 3, wind_gust_ms: 5, wind_dir_deg: 10 }),
+        reading('2026-10-14T06:09:00Z', { wind_avg_ms: null, wind_gust_ms: null, wind_dir_deg: null }),
+        reading('2026-10-14T06:10:00Z', { wind_avg_ms: 2, wind_gust_ms: 4, wind_dir_deg: 270 }),
+      ],
+      TODAY_FROM,
+      '2026-10-14T06:10:30Z',
+    );
+    const [first, second] = windBuckets(series, 10);
+    expect(first).toMatchObject({ ts: '2026-10-14T06:00:00Z', gust: 18, gustAt: '2026-10-14T06:05:00Z', dir: 0 });
+    expect(first.avg).toBeCloseTo(7.2); // (3.6 + 10.8) / 2 km/h
+    expect(second).toMatchObject({ ts: '2026-10-14T06:10:00Z', dir: 270 });
+  });
+  it('follows the Madrid clock from an hour up', () => {
+    // 07:30 and 08:30 in Madrid (UTC+2): the same 6-hour stretch, from 06:00.
+    const series = fromReadings([reading('2026-10-14T05:30:00Z'), reading('2026-10-14T06:30:00Z')], TODAY_FROM, '2026-10-14T07:00:00Z');
+    expect(windBuckets(series, 360).map((b) => b.ts)).toEqual(['2026-10-14T04:00:00Z']);
+    expect(windBuckets(series, 1440).map((b) => b.ts)).toEqual([TODAY_FROM]);
+  });
+  it('picks the stretch by the range length, never finer than the data', () => {
+    const from = '2026-10-01T00:00:00Z';
+    const step = (hours: number, stepMinutes = 1) =>
+      windStepFor({ from, to: new Date(Date.parse(from) + hours * 3_600_000).toISOString(), stepMinutes, samples: [] }, 180);
+    expect(step(2)).toBe(1);
+    expect(step(24)).toBe(10);
+    expect(step(48)).toBe(30);
+    expect(step(7 * 24, 60)).toBe(60);
+    expect(step(30 * 24, 60)).toBe(360);
   });
 });
