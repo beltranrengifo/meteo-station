@@ -25,6 +25,18 @@ describe('vapidDetails', () => {
     expect(() => vapidDetails()).toThrow(`missing env var ${name}`);
   });
 
+  it('accepts a mailto: or https: subject', () => {
+    stubAll();
+    vi.stubEnv('VAPID_SUBJECT', 'https://gorraplanistas.vercel.app');
+    expect(vapidDetails().subject).toBe('https://gorraplanistas.vercel.app');
+  });
+
+  it.each(['test@example.com', 'mailto test@example.com', 'http://example.com'])('rejects the subject %s without echoing it', (subject) => {
+    stubAll();
+    vi.stubEnv('VAPID_SUBJECT', subject);
+    expect(() => vapidDetails()).toThrow(/^VAPID_SUBJECT must be a mailto: or https: URL$/);
+  });
+
   it('does not put the values in the error', () => {
     stubAll();
     vi.stubEnv('VAPID_PRIVATE_KEY', '');

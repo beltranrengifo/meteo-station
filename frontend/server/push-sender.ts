@@ -28,11 +28,25 @@ export interface VapidDetails {
   privateKey: string;
 }
 
-// Throws if a variable is missing. The cron calls it before claiming the day, so a
-// misconfiguration fails before anything is claimed.
+// web-push (and Apple) only take a mailto: or https: URL as the VAPID subject.
+function isVapidSubject(value: string): boolean {
+  try {
+    return ['mailto:', 'https:'].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+// Throws if a variable is missing or the subject is not a mailto:/https: URL, without echoing
+// any value. The cron calls it before claiming the day, so a misconfiguration fails before
+// anything is claimed.
 export function vapidDetails(): VapidDetails {
+  const subject = requireEnv('VAPID_SUBJECT');
+  if (!isVapidSubject(subject)) {
+    throw new Error('VAPID_SUBJECT must be a mailto: or https: URL');
+  }
   return {
-    subject: requireEnv('VAPID_SUBJECT'),
+    subject,
     // Public by design: the browser needs it to subscribe, the server to sign.
     publicKey: requireEnv('VITE_VAPID_PUBLIC_KEY'),
     privateKey: requireEnv('VAPID_PRIVATE_KEY'),

@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Temporal } from 'temporal-polyfill';
 import type {
-  DayResponse, ForecastResponse, Last24hResponse, Last7DaysResponse, NowResponse, RangeResponse, SkyResponse,
+  DailySummaryResponse, DayResponse, ForecastResponse, Last24hResponse, Last7DaysResponse, NowResponse, RangeResponse, SkyResponse,
   StationsResponse,
 } from '../../shared/api-types';
 import { msUntilNextReading } from '../../shared/refresh';
@@ -122,5 +122,17 @@ export function useForecast(station: StationId, enabled: boolean) {
     retry: retryUnlessMissing,
     staleTime: SKY_REFRESH_MS,
     refetchInterval: SKY_REFRESH_MS,
+  });
+}
+
+// Today's notification text, for subscribers ("El aviso de hoy"). 404 until it is sent: no card.
+// Asked again when the app comes back to the front, which is what a tap on the notification does.
+export function useDailySummary(enabled: boolean) {
+  return useQuery({
+    queryKey: ['daily-summary'],
+    queryFn: () => getJson<DailySummaryResponse>('/api/daily-summary'),
+    enabled,
+    retry: retryUnlessMissing,
+    staleTime: 60_000,
   });
 }

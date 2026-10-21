@@ -203,6 +203,11 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
   | Error de red | Mensaje y botón para reintentar. |
 
 - El service worker se registra al cargar la app instalada.
+- `src/components/DailySummary.tsx`, la tarjeta "El aviso de hoy", arriba de la pestaña de previsión:
+  - solo para quien tiene el aviso activado (estado `on`);
+  - lee `GET /api/daily-summary` y enseña el título y una fila por línea, con el emoticono aparte y cada ⚠️ en su propia fila resaltada (`src/lib/daily-summary.ts`, con tests);
+  - "Leído" la cierra y se guarda en `localStorage` el día cerrado; vuelve con el aviso del día siguiente. Sin `localStorage`, la tarjeta sale siempre;
+  - así el texto no se pierde aunque la notificación se descarte sin tocarla.
 
 ### 5.2 Vercel
 
@@ -213,6 +218,7 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
   - **límite**: 10 peticiones por hora por IP (sumando `subscribe` y `unsubscribe`), y como mucho 1000 suscripciones. Si se supera, responde 429 o 503;
   - upsert por `endpoint`.
 - `api/push/unsubscribe.ts`, `POST { endpoint }`: misma validación y mismo límite. Borra por `endpoint` y responde 204 aunque no existiera.
+- `api/daily-summary.ts`, `GET`: el mensaje de hoy (`daily_messages`) como `{ day, title, body, sentAt }`, o 404 si aún no se ha enviado. Caché de 60 s. No admite `?station=`: el aviso es de la estación por defecto.
 - La IP se guarda solo como `HMAC-SHA256(ip, CRON_SECRET)` en hexadecimal. La IP se lee de `x-forwarded-for`, el primer valor, que en Vercel pone la plataforma.
 - `api/cron/daily-forecast.ts`, `POST`:
   1. Exige `Authorization: Bearer {CRON_SECRET}`. Si no, 401.
@@ -220,7 +226,7 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
   3. Lee las claves VAPID (salvo en `preview`): si falta una variable, 500 antes de reunir datos o reservar el día.
   4. Reúne los datos (5.3) y monta el mensaje con `buildDailyMessage`.
   5. Reserva el día: `insert into push_daily_runs (day) ... on conflict do nothing`. Si no inserta, ya se envió hoy: 200 sin hacer nada.
-  6. Envía el mensaje con `web-push` a todas las suscripciones:
+  6. Guarda el mensaje en `daily_messages` (upsert por día; también con `send-now`), para que al tocar la notificación la tarjeta ya lo encuentre. Después lo envía con `web-push` a todas las suscripciones:
      - de 10 en 10 en paralelo;
      - `TTL` de 6 h, para que llegue aunque el móvil esté sin red un rato;
      - `urgency: 'normal'`;
@@ -281,6 +287,7 @@ create table public.push_daily_runs (     -- un envío por día
   - `push_subscriptions`: select, insert, delete, y update de `endpoint`, `p256dh`, `auth` y `last_sent_at`;
   - `push_requests`: select e insert;
   - `push_daily_runs`: select, insert, y update de `title`, `body`, `sent`, `failed` y `removed`. El select hace falta para el `RETURNING` de la reserva y para el `WHERE` del update.
+  - `daily_messages` (segunda migración, `20261022100000_daily_messages.sql`): select, insert, y update de `day`, `title`, `body` y `sent_at`. Va aparte de `push_daily_runs` para que un envío de prueba no reserve el día.
 
   Es el primer `delete` que tiene esta clave, y solo sobre `push_subscriptions`.
 - Extensión `pg_net` (en el esquema `extensions`).

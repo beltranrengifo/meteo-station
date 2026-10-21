@@ -5,7 +5,7 @@ Guía para el dueño del proyecto. El diseño completo está en
 
 ## 1. Qué es
 
-Cada día a las 9:00 de Madrid, quien tenga la web instalada como app en el móvil y se haya apuntado recibe una notificación con la previsión del día para la estación. Funciona en iPhone (iOS 16.4 o superior) y en Android, sin app nativa. Al tocarla se abre la pestaña de previsión (si la app ya estaba abierta, la trae al frente y la lleva a esa pestaña). El mensaje sale a las 9:05, para que ya haya llegado la lectura de las 9:00.
+Cada día a las 9:00 de Madrid, quien tenga la web instalada como app en el móvil y se haya apuntado recibe una notificación con la previsión del día para la estación. Funciona en iPhone (iOS 16.4 o superior) y en Android, sin app nativa. Al tocarla se abre la pestaña de previsión (si la app ya estaba abierta, la trae al frente y la lleva a esa pestaña). Arriba sale la tarjeta "El aviso de hoy" con el mismo texto, bien maquetado; se cierra con "Leído" y no vuelve hasta el aviso del día siguiente. Aunque descartes la notificación sin tocarla, la tarjeta sigue ahí al abrir la app ese día. El mensaje sale a las 9:05, para que ya haya llegado la lectura de las 9:00.
 
 Ejemplo:
 
@@ -44,7 +44,10 @@ Ficheros (los que no empiezan por `backend/` están en `frontend/`):
 | `public/manifest.webmanifest` | Datos de la app instalada. |
 | `src/lib/push.ts` | Lógica de la suscripción en el móvil. |
 | `src/components/DailyAlert.tsx` | El bloque "Aviso diario" de la pestaña de previsión. |
+| `src/components/DailySummary.tsx`, `src/lib/daily-summary.ts` | La tarjeta "El aviso de hoy", solo para quien tiene el aviso activado. "Leído" se recuerda en ese móvil hasta el día siguiente. |
+| `api/daily-summary.ts` | `GET`: el aviso de hoy tal como se envió (404 si aún no se ha enviado). |
 | `backend/supabase/migrations/20261021100000_push_notifications.sql` | Tablas, permisos y trabajos de `pg_cron`. |
+| `backend/supabase/migrations/20261022100000_daily_messages.sql` | Tabla `daily_messages`: el aviso de cada día tal como se envió, para la tarjeta. |
 
 ## 3. Cómo se corrigen las temperaturas
 
@@ -79,7 +82,7 @@ Los valores los crea y guarda el dueño. No se escriben en el repositorio ni en 
    |---|---|
    | `VITE_VAPID_PUBLIC_KEY` | la clave pública VAPID |
    | `VAPID_PRIVATE_KEY` | la clave privada VAPID |
-   | `VAPID_SUBJECT` | un `mailto:` de contacto, por ejemplo `mailto:tu@correo.com` |
+   | `VAPID_SUBJECT` | un `mailto:` de contacto, todo junto: `mailto:tu@correo.com` (sin `mailto:` Apple rechaza el envío) |
    | `CRON_SECRET` | el secreto de `openssl rand -hex 32` |
 
    Vuelve a desplegar: `VITE_*` se fija al construir la web. Si la clave pública no estaba en el build, el botón falla.
@@ -177,8 +180,9 @@ No hay cuentas de usuario. **La suscripción vive en el propio móvil.**
 | No llega a las 9:05 | No hay suscripciones, o se borraron por 404 o 410 | `select count(*) from push_subscriptions;` y vuelve a apuntarte. |
 | Responde 502 "forecast unavailable" | Open-Meteo no responde (o falta una estación listada o sus coordenadas) | Ese día no hay aviso: el día no llega a reservarse, y no se reintenta solo. Con `?mode=send-now` puedes enviarlo a mano cuando vuelva. |
 | `push_daily_runs` tiene la fila de hoy con título y recuentos vacíos | El envío falló después de reservar el día: falló la base de datos o el servicio de push, o se agotó el tiempo de la función | Mira los registros de Vercel de esa hora. El día no se reintenta: para mandarlo a mano usa `?mode=send-now`. |
-| Responde 500 y no hay fila de hoy en `push_daily_runs` | Falta `VAPID_SUBJECT`, `VITE_VAPID_PUBLIC_KEY` o `VAPID_PRIVATE_KEY` en Vercel (se comprueban antes de reservar el día) | Crea la variable que falta (el registro dice cuál), vuelve a desplegar y repite la llamada. |
+| Responde 500 y no hay fila de hoy en `push_daily_runs` | Falta `VAPID_SUBJECT`, `VITE_VAPID_PUBLIC_KEY` o `VAPID_PRIVATE_KEY` en Vercel, o `VAPID_SUBJECT` no empieza por `mailto:` o `https:` (se comprueban antes de reservar el día) | Corrige la variable (el registro de Vercel dice cuál), vuelve a desplegar y repite la llamada. |
 | Dejó de llegar el aviso a todos tras regenerar las claves VAPID | Las claves nuevas invalidan todas las suscripciones existentes: el servicio de push responde 403 y las filas cuentan como fallidas | Cada móvil debe darse de baja ("Dejar de recibirlo") y volver a apuntarse. No regeneres las claves si no hace falta. |
+| No sale la tarjeta "El aviso de hoy" | Aún no se ha enviado hoy (antes de las 9:05); el aviso no está activado en ese móvil; o ya la cerraste con "Leído" | `select * from daily_messages order by day desc limit 3;`. Tras un envío tarda hasta un minuto en verse. |
 | Responde 401 | `Authorization` mal o `CRON_SECRET` distinto | Comprueba el valor en Vercel y que redesplegaste. |
 
 ## 9. Límites
