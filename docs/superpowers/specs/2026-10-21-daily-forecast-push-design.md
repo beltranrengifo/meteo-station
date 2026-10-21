@@ -185,7 +185,7 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
 - Los iconos se generan con `design/render.ts` desde `design/app-icon.svg`: el logo del favicon al 72 % sobre un fondo opaco `#f5f7fb`. Un mismo archivo sirve para `any`, `maskable` y `apple-touch-icon`.
 - `public/sw.js`, el service worker:
   - `push`: lee el JSON `{ title, body, url }` y llama a `showNotification` con el icono.
-  - `notificationclick`: si hay una ventana de la web abierta la enfoca; si no, abre `url`.
+  - `notificationclick`: si hay una ventana de la web abierta la enfoca y la lleva a `url` (si no puede navegarla, solo la enfoca); si no, abre `url`.
   - No hay caché ni `fetch`.
 - `src/lib/push.ts` (lógica sin React):
   - `isInstalled()`: `matchMedia('(display-mode: standalone)')` o `navigator.standalone`.
@@ -217,20 +217,22 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
 - `api/cron/daily-forecast.ts`, `POST`:
   1. Exige `Authorization: Bearer {CRON_SECRET}`. Si no, 401.
   2. Si en `Europe/Madrid` no son las 9, responde 200 "fuera de hora" sin hacer nada.
-  3. Reúne los datos (5.3) y monta el mensaje con `buildDailyMessage`.
-  4. Reserva el día: `insert into push_daily_runs (day) ... on conflict do nothing`. Si no inserta, ya se envió hoy: 200 sin hacer nada.
-  5. Envía el mensaje con `web-push` a todas las suscripciones:
+  3. Lee las claves VAPID (salvo en `preview`): si falta una variable, 500 antes de reunir datos o reservar el día.
+  4. Reúne los datos (5.3) y monta el mensaje con `buildDailyMessage`.
+  5. Reserva el día: `insert into push_daily_runs (day) ... on conflict do nothing`. Si no inserta, ya se envió hoy: 200 sin hacer nada.
+  6. Envía el mensaje con `web-push` a todas las suscripciones:
      - de 10 en 10 en paralelo;
      - `TTL` de 6 h, para que llegue aunque el móvil esté sin red un rato;
      - `urgency: 'normal'`;
-     - `topic: 'daily-forecast'`.
-  6. Con 404 o 410 borra la suscripción. Si va bien, actualiza `last_sent_at`.
-  7. Guarda en `push_daily_runs` el texto y los recuentos (enviadas, fallidas, borradas).
+     - `topic: 'daily-forecast'`;
+     - `timeout` de 10 s por envío, para que un servicio de push colgado no pare el lote.
+  7. Con 404 o 410 borra la suscripción. Si va bien, actualiza `last_sent_at`.
+  8. Guarda en `push_daily_runs` el texto y los recuentos (enviadas, fallidas, borradas).
 
   Modos de prueba, también con el secreto:
   - `?mode=preview`: devuelve el texto y los datos usados, sin reservar el día ni enviar.
   - `?mode=send-now`: envía ya, sin mirar la hora ni reservar el día. Solo para pruebas mientras no haya más suscriptores que el dueño.
-- `server/daily-forecast.ts`, la lógica pura con tests:
+- `server/daily-message.ts` y `server/daily-temperature.ts`, la lógica pura con tests:
   - `temperatureCorrection`;
   - `todayRange` (máxima y mínima);
   - `skyLine`, `pressureSituation`, `warnings`, `rainLine`, `windLine` y `title`;
@@ -238,7 +240,7 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
 
   No hace llamadas de red: recibe los datos ya leídos.
 - `server/open-meteo.ts` gana dos consultas:
-  - `dailyForecastUrl`: `forecast_days=1`, `timezone=Europe/Madrid`, `wind_speed_unit=kmh` y por horas `temperature_2m, precipitation_probability, precipitation, weather_code, wind_speed_10m, wind_direction_10m, wind_gusts_10m, pressure_msl, is_day`;
+  - `todayUrl`: `forecast_days=2` (las 00:00 de mañana guardan la lluvia y las rachas de la última hora), `timezone=Europe/Madrid`, `wind_speed_unit=kmh` y por horas `temperature_2m, precipitation_probability, precipitation, weather_code, wind_speed_10m, wind_direction_10m, wind_gusts_10m, pressure_msl, is_day`;
   - `previousRunsUrl`: `previous-runs-api.open-meteo.com`, `past_days=1`, por horas `temperature_2m_previous_day1`.
 - Dependencia nueva: `web-push`, la librería de referencia de Web Push en Node, y sus tipos.
 
@@ -313,7 +315,7 @@ Las claves VAPID se generan con `npx web-push generate-vapid-keys` y el secreto 
 ## 8. Pruebas
 
 - **Vitest**, en `frontend/server/`:
-  - `daily-forecast.test.ts`: corrección (con y sin datos, tope de ±5), mínima medida frente a la del modelo, cielo por franjas y empates, presión, avisos, lluvia (los tres casos y sin horas), viento (los dos casos y direcciones) y mensaje completo;
+  - `daily-message.test.ts` y `daily-temperature.test.ts`: corrección (con y sin datos, tope de ±5), mínima medida frente a la del modelo, cielo por franjas y empates, presión, avisos, lluvia (los tres casos y sin horas), viento (los dos casos y direcciones) y mensaje completo;
   - `push-validation.test.ts`: hosts, base64url y tamaños;
   - `open-meteo.test.ts`: las dos URLs nuevas y el parseo;
   - comprobación de la hora 9 de Madrid en verano e invierno.
@@ -328,7 +330,7 @@ Las claves VAPID se generan con `npx web-push generate-vapid-keys` y el secreto 
 ## 9. Orden de implementación (resumen para el plan)
 
 1. Migración y tipos (`pnpm gen:types`).
-2. `server/daily-forecast.ts` con tests, y las URLs de Open-Meteo.
+2. `server/daily-message.ts` y `server/daily-temperature.ts` con tests, y las URLs de Open-Meteo.
 3. `api/cron/daily-forecast` con `preview`.
 4. `api/push/subscribe` y `api/push/unsubscribe`, con su validación.
 5. PWA: manifest, iconos, `sw.js`, `push.ts` y `DailyAlert`.

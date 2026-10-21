@@ -5,7 +5,7 @@ Guía para el dueño del proyecto. El diseño completo está en
 
 ## 1. Qué es
 
-Cada día a las 9:00 de Madrid, quien tenga la web instalada como app en el móvil y se haya apuntado recibe una notificación con la previsión del día para la estación. Funciona en iPhone (iOS 16.4 o superior) y en Android, sin app nativa. Al tocarla se abre la pestaña de previsión. El mensaje sale a las 9:05, para que ya haya llegado la lectura de las 9:00.
+Cada día a las 9:00 de Madrid, quien tenga la web instalada como app en el móvil y se haya apuntado recibe una notificación con la previsión del día para la estación. Funciona en iPhone (iOS 16.4 o superior) y en Android, sin app nativa. Al tocarla se abre la pestaña de previsión (si la app ya estaba abierta, la trae al frente y la lleva a esa pestaña). El mensaje sale a las 9:05, para que ya haya llegado la lectura de las 9:00.
 
 Ejemplo:
 
@@ -40,7 +40,7 @@ Ficheros (los que no empiezan por `backend/` están en `frontend/`):
 | `server/push-validation.ts` | Valida endpoint y claves; calcula el hash de la IP; compara el secreto. |
 | `server/push-store.ts` | Acceso a Supabase: suscripciones, límite por IP, reserva del día. |
 | `server/push-sender.ts` | Envía con `web-push` (VAPID). |
-| `public/sw.js` | Service worker: enseña la notificación y abre la web al tocarla. |
+| `public/sw.js` | Service worker: enseña la notificación y, al tocarla, abre la web o lleva a la pestaña de previsión la que ya está abierta. |
 | `public/manifest.webmanifest` | Datos de la app instalada. |
 | `src/lib/push.ts` | Lógica de la suscripción en el móvil. |
 | `src/components/DailyAlert.tsx` | El bloque "Aviso diario" de la pestaña de previsión. |
@@ -118,7 +118,7 @@ Los valores los crea y guarda el dueño. No se escriben en el repositorio ni en 
    curl -X POST -H "Authorization: Bearer $CRON_SECRET" "https://gorraplanistas.vercel.app/api/cron/daily-forecast?mode=send-now"
    ```
 
-   Envía ya, sin mirar la hora y sin reservar el día. Responde con los recuentos (`sent`, `failed`, `removed`). Al tocar la notificación se abre la pestaña de previsión.
+   Envía ya, sin mirar la hora y sin reservar el día. Responde con los recuentos (`sent`, `failed`, `removed`). Al tocar la notificación se abre la pestaña de previsión, también si la app ya estaba abierta en otra pestaña.
 
 5. Toca "Dejar de recibirlo" y comprueba que la fila desaparece de `push_subscriptions` (consulta de la sección 6).
 
@@ -176,11 +176,14 @@ No hay cuentas de usuario. **La suscripción vive en el propio móvil.**
 | No llega a las 9:05 | `push_daily_runs` ya tiene la fila de hoy (responde "already sent today") | Es lo normal tras un envío. Si el envío se cortó a medias, el día no se reintenta: se prefiere perder un aviso a mandarlo dos veces. |
 | No llega a las 9:05 | No hay suscripciones, o se borraron por 404 o 410 | `select count(*) from push_subscriptions;` y vuelve a apuntarte. |
 | Responde 502 "forecast unavailable" | Open-Meteo no responde (o falta una estación listada o sus coordenadas) | Ese día no hay aviso: el día no llega a reservarse, y no se reintenta solo. Con `?mode=send-now` puedes enviarlo a mano cuando vuelva. |
+| `push_daily_runs` tiene la fila de hoy con título y recuentos vacíos | El envío falló después de reservar el día: falló la base de datos o el servicio de push, o se agotó el tiempo de la función | Mira los registros de Vercel de esa hora. El día no se reintenta: para mandarlo a mano usa `?mode=send-now`. |
+| Responde 500 y no hay fila de hoy en `push_daily_runs` | Falta `VAPID_SUBJECT`, `VITE_VAPID_PUBLIC_KEY` o `VAPID_PRIVATE_KEY` en Vercel (se comprueban antes de reservar el día) | Crea la variable que falta (el registro dice cuál), vuelve a desplegar y repite la llamada. |
+| Dejó de llegar el aviso a todos tras regenerar las claves VAPID | Las claves nuevas invalidan todas las suscripciones existentes: el servicio de push responde 403 y las filas cuentan como fallidas | Cada móvil debe darse de baja ("Dejar de recibirlo") y volver a apuntarse. No regeneres las claves si no hace falta. |
 | Responde 401 | `Authorization` mal o `CRON_SECRET` distinto | Comprueba el valor en Vercel y que redesplegaste. |
 
 ## 9. Límites
 
-- 10 peticiones por hora por IP, sumando `subscribe` y `unsubscribe` (se guarda solo un hash de la IP).
+- 10 peticiones por hora por IP, sumando `subscribe` y `unsubscribe` (se guarda solo un hash de la IP). Es por IP: los móviles de la misma WiFi de casa comparten el límite, y abrir la app también cuenta (sincroniza la suscripción).
 - 1000 suscripciones como máximo.
 - Una sola estación: la de por defecto (`STATION_DEVICE_ID`, o la primera listada).
 - `TTL` de 6 h: si el móvil está sin red, el aviso aún llega hasta las 15:00.
