@@ -1,11 +1,12 @@
 // Latest values, today's extremes so far and a warning when the station stops sending.
-import { Activity, Droplets, Gauge, Thermometer, Umbrella, Wind, type LucideIcon } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Droplets, Gauge, Thermometer, Umbrella, Wind, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import type { ReadingRow } from '../../shared/api-types';
 import { useClock } from '../lib/clock';
 import { compassPoint, formatAge, formatTime, isStale, msToKmh } from '../lib/format';
 import { rangeExtreme, totalRain, type RangeSeries } from '../lib/series';
-import { PRESSURE_TREND_HOURS, dewPoint, pressureTrend } from '../lib/weather';
+import { PRESSURE_TREND_HOURS, dewPoint, feelsLike, pressureTrend } from '../lib/weather';
 
 function fixed(value: number | null | undefined, decimals: number): string {
   return value === null || value === undefined ? '—' : value.toFixed(decimals);
@@ -20,11 +21,12 @@ interface MetricCardProps {
   label: string;
   value: string;
   unit: string;
-  detail: string;
+  note?: ReactNode; // a second value, between the main one and the detail
+  detail: ReactNode;
   tone: string;
 }
 
-function MetricCard({ icon: Icon, label, value, unit, detail, tone }: MetricCardProps) {
+function MetricCard({ icon: Icon, label, value, unit, note, detail, tone }: MetricCardProps) {
   return (
     <article className={`metric-card ${tone}`}>
       <div className="metric-top">
@@ -37,8 +39,27 @@ function MetricCard({ icon: Icon, label, value, unit, detail, tone }: MetricCard
         {value}
         <small>{unit}</small>
       </div>
+      {note && <div className="metric-note">{note}</div>}
       <div className="metric-detail">{detail}</div>
     </article>
+  );
+}
+
+// Today's lowest and highest so far, one per line, each with the time it happened.
+function Extremes({ min, max }: { min: { value: number; at: string } | null | undefined; max: { value: number; at: string } | null | undefined }) {
+  const row = (Icon: LucideIcon, label: string, extreme: { value: number; at: string } | null | undefined) => (
+    <span className="extreme">
+      <Icon size={12} strokeWidth={2} aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+      <b>{fixed(extreme?.value, 1)}°</b>
+      <span>{extreme ? formatTime(extreme.at) : '—'}</span>
+    </span>
+  );
+  return (
+    <span className="extremes">
+      {row(ArrowDown, 'Mínima', min)}
+      {row(ArrowUp, 'Máxima', max)}
+    </span>
   );
 }
 
@@ -80,6 +101,7 @@ export function CurrentConditions({ reading, today, last24h }: CurrentConditions
   const gustMax = today && rangeExtreme(today, 'max', (s) => s.windGust);
   const trend = last24h ? pressureTrend(last24h) : null;
   const dew = dewPoint(reading?.temp_c ?? null, reading?.humidity_pct ?? null);
+  const feels = feelsLike(reading?.temp_c ?? null, reading?.humidity_pct ?? null, reading?.wind_avg_ms ?? null);
 
   return (
     <section className="current-panel">
@@ -97,7 +119,8 @@ export function CurrentConditions({ reading, today, last24h }: CurrentConditions
           label="Temperatura"
           value={fixed(reading?.temp_c, 1)}
           unit="°C"
-          detail={`Mín ${fixed(tempMin?.value, 1)}° (${at(tempMin?.at)}) · Máx ${fixed(tempMax?.value, 1)}° (${at(tempMax?.at)})`}
+          note={<>Sensación <b>{fixed(feels, 1)}°</b></>}
+          detail={<Extremes min={tempMin} max={tempMax} />}
           tone="blue"
         />
         <MetricCard

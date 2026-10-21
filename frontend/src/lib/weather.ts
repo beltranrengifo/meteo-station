@@ -20,6 +20,18 @@ export function dewPoint(tempC: number | null, humidityPct: number | null): numb
   return (MAGNUS_B * gamma) / (MAGNUS_A - gamma);
 }
 
+// How the temperature feels (°C), from temperature (°C), relative humidity (%) and wind (m/s):
+// Steadman's (1994) apparent temperature, as used by the Australian Bureau of Meteorology,
+// without solar radiation. One formula for every weather, so it has no jumps between a wind
+// chill and a heat index. The formula expects wind at 10 m; the station's is lower.
+export function feelsLike(tempC: number | null, humidityPct: number | null, windMs: number | null): number | null {
+  if (tempC === null || humidityPct === null || windMs === null) {
+    return null;
+  }
+  const vapourPressureHpa = (humidityPct / 100) * 6.105 * Math.exp((17.27 * tempC) / (237.7 + tempC));
+  return tempC + 0.33 * vapourPressureHpa - 0.7 * windMs - 4;
+}
+
 // Pressure change in hPa over the last PRESSURE_TREND_HOURS, from readings sorted by time.
 // Null when there is no reading close enough to that point (the station was off).
 export function pressureTrend(readings: ReadingRow[]): number | null {
