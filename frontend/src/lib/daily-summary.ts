@@ -1,5 +1,6 @@
 // The "El aviso de hoy" card: today's notification text laid out in rows, and whether the reader
 // already closed it on this device.
+import { Temporal } from 'temporal-polyfill';
 
 export interface SummaryRow {
   emoji: string;
@@ -8,7 +9,8 @@ export interface SummaryRow {
 }
 
 const WARNING = '⚠️';
-// Which day's card was closed on this device. Only a convenience: without storage the card shows.
+// When the last message read on this device was sent: every send (the 9:05 one or a test) has its
+// own, so a new one shows the card again. Only a convenience: without storage the card shows.
 const DISMISSED_KEY = 'daily-summary-dismissed';
 
 const graphemes = new Intl.Segmenter('es', { granularity: 'grapheme' });
@@ -29,17 +31,22 @@ export function summaryRows(body: string): SummaryRow[] {
     .map(row);
 }
 
-export function isSummaryDismissed(day: string): boolean {
+// One spelling per instant ("…+00:00" and "…Z" are the same send).
+function sendKey(sentAt: string): string {
+  return Temporal.Instant.from(sentAt).toString();
+}
+
+export function isSummaryDismissed(sentAt: string): boolean {
   try {
-    return localStorage.getItem(DISMISSED_KEY) === day;
+    return localStorage.getItem(DISMISSED_KEY) === sendKey(sentAt);
   } catch {
     return false;
   }
 }
 
-export function dismissSummary(day: string): void {
+export function dismissSummary(sentAt: string): void {
   try {
-    localStorage.setItem(DISMISSED_KEY, day);
+    localStorage.setItem(DISMISSED_KEY, sendKey(sentAt));
   } catch {
     // Private mode or blocked storage: the card just comes back on the next open.
   }

@@ -35,12 +35,24 @@ describe('dismissing the summary', () => {
     });
   }
 
-  it('is remembered for that day only', () => {
+  it('is remembered for that send only, so a later send the same day shows again', () => {
     stubStorage();
-    expect(isSummaryDismissed('2026-10-22')).toBe(false);
-    dismissSummary('2026-10-22');
-    expect(isSummaryDismissed('2026-10-22')).toBe(true);
-    expect(isSummaryDismissed('2026-10-23')).toBe(false);
+    expect(isSummaryDismissed('2026-10-22T07:05:01.123+00:00')).toBe(false);
+    dismissSummary('2026-10-22T07:05:01.123+00:00');
+    expect(isSummaryDismissed('2026-10-22T07:05:01.123+00:00')).toBe(true);
+    expect(isSummaryDismissed('2026-10-22T13:55:02.456+00:00')).toBe(false);
+    expect(isSummaryDismissed('2026-10-23T07:05:00.789+00:00')).toBe(false);
+  });
+  it('matches the same instant whatever its format', () => {
+    stubStorage();
+    dismissSummary('2026-10-22T07:05:01.123+00:00');
+    expect(isSummaryDismissed('2026-10-22T07:05:01.123Z')).toBe(true);
+    expect(isSummaryDismissed('2026-10-22T09:05:01.123+02:00')).toBe(true);
+  });
+  it('ignores a day stored by the old version', () => {
+    stubStorage();
+    localStorage.setItem('daily-summary-dismissed', '2026-10-22');
+    expect(isSummaryDismissed('2026-10-22T07:05:01.123+00:00')).toBe(false);
   });
   it('shows the card when storage is unavailable', () => {
     vi.stubGlobal('localStorage', {
@@ -51,7 +63,7 @@ describe('dismissing the summary', () => {
         throw new Error('blocked');
       },
     });
-    expect(isSummaryDismissed('2026-10-22')).toBe(false);
-    expect(() => dismissSummary('2026-10-22')).not.toThrow();
+    expect(isSummaryDismissed('2026-10-22T07:05:01.123+00:00')).toBe(false);
+    expect(() => dismissSummary('2026-10-22T07:05:01.123+00:00')).not.toThrow();
   });
 });
