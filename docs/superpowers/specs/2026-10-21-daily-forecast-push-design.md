@@ -206,7 +206,7 @@ Supabase pg_cron (07:05 y 08:05 UTC) --pg_net POST + CRON_SECRET--> Vercel api/c
 - `src/components/DailySummary.tsx`, la tarjeta "El aviso de hoy", arriba de la pestaña de previsión:
   - solo para quien tiene el aviso activado (estado `on`);
   - lee `GET /api/daily-summary` y enseña el título y una fila por línea, con el emoticono aparte y cada ⚠️ en su propia fila resaltada (`src/lib/daily-summary.ts`, con tests);
-  - "Leído" la cierra y se guarda en `localStorage` el día cerrado; vuelve con el aviso del día siguiente. Sin `localStorage`, la tarjeta sale siempre;
+  - "Leído" la cierra y se guarda en `localStorage` el `sentAt` del aviso cerrado; vuelve con cualquier envío nuevo (el del día siguiente o uno de prueba). Sin `localStorage`, la tarjeta sale siempre;
   - así el texto no se pierde aunque la notificación se descarte sin tocarla.
 
 ### 5.2 Vercel

@@ -1,6 +1,6 @@
 // "El aviso de hoy": the 9:00 notification's text at the top of the forecast tab, for those who
 // get it (the app installed and the alert on). "Leído" closes it on this device until the next
-// day's notification.
+// send, the next day's or a test one.
 import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDailySummary, useStations } from '../lib/api';
@@ -11,7 +11,7 @@ import { chooseStation } from '../lib/station';
 
 export function DailySummary() {
   const [subscribed, setSubscribed] = useState(false);
-  const [closedDay, setClosedDay] = useState<string | null>(null);
+  const [closedSend, setClosedSend] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,13 +31,13 @@ export function DailySummary() {
   // The notification is about the default station, whichever one the dashboard shows.
   const stations = useStations();
   const place = stations.data && chooseStation(stations.data, null)?.name;
-  if (!data || closedDay === data.day || isSummaryDismissed(data.day)) {
+  if (!data || closedSend === data.sentAt || isSummaryDismissed(data.sentAt)) {
     return null;
   }
 
   const close = () => {
-    dismissSummary(data.day);
-    setClosedDay(data.day);
+    dismissSummary(data.sentAt);
+    setClosedSend(data.sentAt);
   };
 
   return (

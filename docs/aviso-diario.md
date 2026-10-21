@@ -5,7 +5,7 @@ Guía para el dueño del proyecto. El diseño completo está en
 
 ## 1. Qué es
 
-Cada día a las 9:00 de Madrid, quien tenga la web instalada como app en el móvil y se haya apuntado recibe una notificación con la previsión del día para la estación. Funciona en iPhone (iOS 16.4 o superior) y en Android, sin app nativa. Al tocarla se abre la pestaña de previsión (si la app ya estaba abierta, la trae al frente y la lleva a esa pestaña). Arriba sale la tarjeta "El aviso de hoy": el sitio ("Madrid, Las Rozas"), la fecha completa ("Miércoles, 21 de octubre de 2026") y el mismo texto, bien maquetado; se cierra con "Leído" y no vuelve hasta el aviso del día siguiente. Aunque descartes la notificación sin tocarla, la tarjeta sigue ahí al abrir la app ese día. El mensaje sale a las 9:05, para que ya haya llegado la lectura de las 9:00.
+Cada día a las 9:00 de Madrid, quien tenga la web instalada como app en el móvil y se haya apuntado recibe una notificación con la previsión del día para la estación. Funciona en iPhone (iOS 16.4 o superior) y en Android, sin app nativa. Al tocarla se abre la pestaña de previsión (si la app ya estaba abierta, la trae al frente y la lleva a esa pestaña). Arriba sale la tarjeta "El aviso de hoy": el sitio ("Madrid, Las Rozas"), la fecha completa ("Miércoles, 21 de octubre de 2026") y el mismo texto, bien maquetado; se cierra con "Leído" y no vuelve hasta el siguiente envío (el del día siguiente o uno de prueba con `?mode=send-now`). Aunque descartes la notificación sin tocarla, la tarjeta sigue ahí al abrir la app ese día. El mensaje sale a las 9:05, para que ya haya llegado la lectura de las 9:00.
 
 Ejemplo:
 
@@ -44,7 +44,7 @@ Ficheros (los que no empiezan por `backend/` están en `frontend/`):
 | `public/manifest.webmanifest` | Datos de la app instalada. |
 | `src/lib/push.ts` | Lógica de la suscripción en el móvil. |
 | `src/components/DailyAlert.tsx` | El bloque "Aviso diario" de la pestaña de previsión. |
-| `src/components/DailySummary.tsx`, `src/lib/daily-summary.ts` | La tarjeta "El aviso de hoy", solo para quien tiene el aviso activado. "Leído" se recuerda en ese móvil hasta el día siguiente. |
+| `src/components/DailySummary.tsx`, `src/lib/daily-summary.ts` | La tarjeta "El aviso de hoy", solo para quien tiene el aviso activado. "Leído" guarda en ese móvil (`localStorage`) la hora de envío del aviso cerrado; un envío nuevo vuelve a sacar la tarjeta. |
 | `api/daily-summary.ts` | `GET`: el aviso de hoy tal como se envió (404 si aún no se ha enviado). |
 | `backend/supabase/migrations/20261021100000_push_notifications.sql` | Tablas, permisos y trabajos de `pg_cron`. |
 | `backend/supabase/migrations/20261022100000_daily_messages.sql` | Tabla `daily_messages`: el aviso de cada día tal como se envió, para la tarjeta. |
