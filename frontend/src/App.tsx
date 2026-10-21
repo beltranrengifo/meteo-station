@@ -2,6 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { useMemo, useRef, useState } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import { CurrentConditions } from './components/CurrentConditions';
+import { DailyAlert } from './components/DailyAlert';
 import { Footer } from './components/Footer';
 import { Forecast } from './components/Forecast';
 import { Header } from './components/Header';
@@ -166,6 +167,7 @@ export function App() {
             isError={forecast.isError}
             missing={isMissing(forecast.error)}
           />
+          <DailyAlert />
         </Tabs.Content>
       </Tabs.Root>
       <Footer lastTs={lastTs} />

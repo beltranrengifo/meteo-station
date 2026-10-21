@@ -322,3 +322,13 @@ footer .attribution a { color: inherit; }
 @keyframes rain-fall { from { transform: translate(0, -16px) rotate(12deg); } to { transform: translate(-24px, 100px) rotate(12deg); } }
 @keyframes snow-fall { from { transform: translate(0, -10px); } 50% { transform: translate(7px, 45px); } to { transform: translate(-3px, 100px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Daily alert */
+.daily-alert { margin-top: 1.5rem; padding: 1.1rem 1.15rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.daily-alert h3 { margin: 0 0 .35rem; font-size: 1rem; }
+.daily-alert p, .daily-alert li { margin: .35rem 0 0; color: var(--muted); font-size: .85rem; line-height: 1.5; }
+.daily-alert ol { margin: .35rem 0 0; padding-left: 1.2rem; }
+.daily-alert button { display: inline-flex; align-items: center; gap: .45rem; margin-top: .75rem; border: 0; padding: .6rem 1rem; border-radius: 10px; color: #fff; background: var(--blue); font-weight: 600; cursor: pointer; }
+.daily-alert button.secondary { color: var(--foreground); background: var(--active); }
+.daily-alert button:disabled { opacity: .6; cursor: default; }
+.daily-alert .daily-alert-error { color: var(--foreground); font-weight: 600; }
