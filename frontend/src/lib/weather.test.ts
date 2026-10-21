@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ReadingRow } from '../../shared/api-types';
-import { dewPoint, precipIntensity, pressureTrend, skyKind, skyLabel, uvCategory } from './weather';
+import { dewPoint, feelsLike, precipIntensity, pressureTrend, skyKind, skyLabel, uvCategory } from './weather';
 
 function reading(ts: string, values: Partial<ReadingRow> = {}): ReadingRow {
   return {
@@ -25,6 +25,20 @@ describe('dewPoint', () => {
     expect(dewPoint(null, 50)).toBeNull();
     expect(dewPoint(20, null)).toBeNull();
     expect(dewPoint(20, 0)).toBeNull();
+  });
+});
+
+describe('feelsLike', () => {
+  it('follows the apparent temperature formula', () => {
+    expect(feelsLike(20, 50, 0)).toBeCloseTo(19.85, 2);
+    expect(feelsLike(16, 50, 1.8)).toBeCloseTo(13.73, 2); // wind makes it feel colder
+    expect(feelsLike(30, 70, 1)).toBeCloseTo(35.07, 2); // humid heat feels hotter
+    expect(feelsLike(0, 80, 5)).toBeCloseTo(-5.89, 2);
+  });
+  it('is null without data', () => {
+    expect(feelsLike(null, 50, 1)).toBeNull();
+    expect(feelsLike(20, null, 1)).toBeNull();
+    expect(feelsLike(20, 50, null)).toBeNull();
   });
 });
 
