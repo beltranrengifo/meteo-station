@@ -79,7 +79,7 @@ Los valores los crea y guarda el dueño. No se escriben en el repositorio ni en 
    |---|---|
    | `VITE_VAPID_PUBLIC_KEY` | la clave pública VAPID |
    | `VAPID_PRIVATE_KEY` | la clave privada VAPID |
-   | `VAPID_SUBJECT` | un `mailto:` de contacto, por ejemplo `mailto:tu@correo.com` |
+   | `VAPID_SUBJECT` | un `mailto:` de contacto, todo junto: `mailto:tu@correo.com` (sin `mailto:` Apple rechaza el envío) |
    | `CRON_SECRET` | el secreto de `openssl rand -hex 32` |
 
    Vuelve a desplegar: `VITE_*` se fija al construir la web. Si la clave pública no estaba en el build, el botón falla.
@@ -177,7 +177,7 @@ No hay cuentas de usuario. **La suscripción vive en el propio móvil.**
 | No llega a las 9:05 | No hay suscripciones, o se borraron por 404 o 410 | `select count(*) from push_subscriptions;` y vuelve a apuntarte. |
 | Responde 502 "forecast unavailable" | Open-Meteo no responde (o falta una estación listada o sus coordenadas) | Ese día no hay aviso: el día no llega a reservarse, y no se reintenta solo. Con `?mode=send-now` puedes enviarlo a mano cuando vuelva. |
 | `push_daily_runs` tiene la fila de hoy con título y recuentos vacíos | El envío falló después de reservar el día: falló la base de datos o el servicio de push, o se agotó el tiempo de la función | Mira los registros de Vercel de esa hora. El día no se reintenta: para mandarlo a mano usa `?mode=send-now`. |
-| Responde 500 y no hay fila de hoy en `push_daily_runs` | Falta `VAPID_SUBJECT`, `VITE_VAPID_PUBLIC_KEY` o `VAPID_PRIVATE_KEY` en Vercel (se comprueban antes de reservar el día) | Crea la variable que falta (el registro dice cuál), vuelve a desplegar y repite la llamada. |
+| Responde 500 y no hay fila de hoy en `push_daily_runs` | Falta `VAPID_SUBJECT`, `VITE_VAPID_PUBLIC_KEY` o `VAPID_PRIVATE_KEY` en Vercel, o `VAPID_SUBJECT` no empieza por `mailto:` o `https:` (se comprueban antes de reservar el día) | Corrige la variable (el registro de Vercel dice cuál), vuelve a desplegar y repite la llamada. |
 | Dejó de llegar el aviso a todos tras regenerar las claves VAPID | Las claves nuevas invalidan todas las suscripciones existentes: el servicio de push responde 403 y las filas cuentan como fallidas | Cada móvil debe darse de baja ("Dejar de recibirlo") y volver a apuntarse. No regeneres las claves si no hace falta. |
 | Responde 401 | `Authorization` mal o `CRON_SECRET` distinto | Comprueba el valor en Vercel y que redesplegaste. |
 
