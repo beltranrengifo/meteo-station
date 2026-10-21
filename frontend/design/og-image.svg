@@ -1,0 +1,78 @@
+<!-- Link preview image (WhatsApp, Telegram, X...), 1200 x 630.
+     Rendered to public/og-image.png; see design/README.md. Colors from src/index.css. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7fbff"/>
+      <stop offset="1" stop-color="#dfeaff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe9a8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#5578f5" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#sky)"/>
+
+  <!-- The logo (public/favicon.svg), large, with a glow behind its sun and a cloud drifting by -->
+  <circle cx="1012" cy="203" r="210" fill="url(#glow)"/>
+  <g filter="url(#soft)" fill="#ffffff" opacity="0.85">
+    <circle cx="830" cy="520" r="34"/>
+    <circle cx="872" cy="505" r="44"/>
+    <circle cx="916" cy="524" r="31"/>
+    <rect x="798" y="520" width="148" height="34" rx="17"/>
+  </g>
+  <g transform="translate(700 70) scale(3.9)">
+    <g transform="translate(-4 6)">
+      <!-- Sun rising behind the cap -->
+      <circle cx="84" cy="28" r="21" fill="#f8c74a"/>
+      <!-- Brim, sticking out toward us and to the right; its inner edge hides under the crown -->
+      <path d="M44 76 C62 78 86 72 99 56 C114 66 122 76 119 84 C110 94 84 97 64 92 C54 89 47 85 44 76 Z" fill="#3f5fd8"/>
+      <!-- Crown, seen three-quarters from the front-right: its bottom edge curves toward us -->
+      <path d="M17 70 C10 44 32 20 58 20 C84 20 103 38 101 62 C90 75 70 81 52 80 C36 79 24 76 17 70 Z" fill="#5578f5"/>
+      <!-- Front panel, between two seams, and the button on top -->
+      <path d="M58 20 C50 34 46 56 47 80" fill="none" stroke="#4767e6" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M58 20 C74 30 86 46 90 71" fill="none" stroke="#4767e6" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="58" cy="20" r="4.5" fill="#3f5fd8"/>
+      <!-- Cloud badge on the front panel -->
+      <g fill="#ffffff">
+        <circle cx="62" cy="55" r="5.5"/>
+        <circle cx="69" cy="50" r="7.5"/>
+        <circle cx="76" cy="55" r="5.5"/>
+        <rect x="56.5" y="55" width="25" height="6.5" rx="3.2"/>
+      </g>
+      <!-- Shade of the crown on the brim -->
+      <path d="M48 82 C66 86 88 80 102 66" fill="none" stroke="#3352c4" stroke-width="3" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Text -->
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="88" y="168" fill="#5578f5" font-size="24" font-weight="700" letter-spacing="5">MADRID · LAS ROZAS</text>
+    <text x="84" y="268" fill="#182033" font-size="80" font-weight="700" letter-spacing="-3">Gorraplanistas</text>
+    <text x="88" y="334" fill="#667085" font-size="34">Una lectura tranquila de tu microclima,</text>
+    <text x="88" y="378" fill="#667085" font-size="34">minuto a minuto.</text>
+
+    <!-- What it measures, with each card's color -->
+    <g font-size="23" font-weight="700" fill="#273957">
+      <rect x="88" y="452" width="196" height="54" rx="27" fill="#ffffff" fill-opacity="0.85"/>
+      <circle cx="116" cy="479" r="8" fill="#5578f5"/>
+      <text x="134" y="487">Temperatura</text>
+
+      <rect x="298" y="452" width="132" height="54" rx="27" fill="#ffffff" fill-opacity="0.85"/>
+      <circle cx="326" cy="479" r="8" fill="#e3a51d"/>
+      <text x="344" y="487">Viento</text>
+
+      <rect x="444" y="452" width="122" height="54" rx="27" fill="#ffffff" fill-opacity="0.85"/>
+      <circle cx="472" cy="479" r="8" fill="#6875d9"/>
+      <text x="490" y="487">Lluvia</text>
+
+      <rect x="580" y="452" width="164" height="54" rx="27" fill="#ffffff" fill-opacity="0.85"/>
+      <circle cx="608" cy="479" r="8" fill="#19a7a0"/>
+      <text x="626" y="487">Previsión</text>
+    </g>
+  </g>
+</svg>

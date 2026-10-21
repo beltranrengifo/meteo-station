@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <g transform="translate(-4 6)">
+    <!-- Sun rising behind the cap -->
+    <circle cx="84" cy="28" r="21" fill="#f8c74a"/>
+    <!-- Brim, sticking out toward us and to the right; its inner edge hides under the crown -->
+    <path d="M44 76 C62 78 86 72 99 56 C114 66 122 76 119 84 C110 94 84 97 64 92 C54 89 47 85 44 76 Z" fill="#3f5fd8"/>
+    <!-- Crown, seen three-quarters from the front-right: its bottom edge curves toward us -->
+    <path d="M17 70 C10 44 32 20 58 20 C84 20 103 38 101 62 C90 75 70 81 52 80 C36 79 24 76 17 70 Z" fill="#5578f5"/>
+    <!-- Front panel, between two seams, and the button on top -->
+    <path d="M58 20 C50 34 46 56 47 80" fill="none" stroke="#4767e6" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M58 20 C74 30 86 46 90 71" fill="none" stroke="#4767e6" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="58" cy="20" r="4.5" fill="#3f5fd8"/>
+    <!-- Cloud badge on the front panel -->
+    <g fill="#ffffff">
+      <circle cx="62" cy="55" r="5.5"/>
+      <circle cx="69" cy="50" r="7.5"/>
+      <circle cx="76" cy="55" r="5.5"/>
+      <rect x="56.5" y="55" width="25" height="6.5" rx="3.2"/>
+    </g>
+    <!-- Shade of the crown on the brim -->
+    <path d="M48 82 C66 86 88 80 102 66" fill="none" stroke="#3352c4" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
