@@ -132,6 +132,78 @@ export type Database = {
         }
         Relationships: []
       }
+      push_daily_runs: {
+        Row: {
+          body: string | null
+          created_at: string
+          day: string
+          failed: number | null
+          removed: number | null
+          sent: number | null
+          title: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          day: string
+          failed?: number | null
+          removed?: number | null
+          sent?: number | null
+          title?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          day?: string
+          failed?: number | null
+          removed?: number | null
+          sent?: number | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      push_requests: {
+        Row: {
+          at: string
+          ip_hash: string
+        }
+        Insert: {
+          at?: string
+          ip_hash: string
+        }
+        Update: {
+          at?: string
+          ip_hash?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: number
+          last_sent_at: string | null
+          p256dh: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: never
+          last_sent_at?: string | null
+          p256dh: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: never
+          last_sent_at?: string | null
+          p256dh?: string
+        }
+        Relationships: []
+      }
       readings: {
         Row: {
           device_id: string

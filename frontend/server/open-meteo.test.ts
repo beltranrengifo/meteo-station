@@ -1,6 +1,18 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
-import { forecastUrl, toForecast, toSky, weekUrl, type OpenMeteoWeek } from './open-meteo.js';
+import {
+  forecastUrl,
+  previousDayForecastMax,
+  previousRunsUrl,
+  toForecast,
+  toSky,
+  toTodayHours,
+  todayUrl,
+  weekUrl,
+  type OpenMeteoToday,
+  type OpenMeteoPreviousRuns,
+  type OpenMeteoWeek,
+} from './open-meteo.js';
 
 describe('weekUrl', () => {
   it('asks for 7 days in exact instants, Madrid days and m/s', () => {
@@ -106,3 +118,86 @@ describe('toSky', () => {
     expect(toSky({ ...forecast, current: { ...forecast.current, is_day: 0 } }).isDay).toBe(false);
   });
 });
+
+const unix = (iso: string) => Temporal.Instant.from(iso).epochMilliseconds / 1000;
+
+describe('todayUrl', () => {
+  it('asks for today and tomorrow by hour, wind in km/h, in Madrid time', () => {
+    const url = new URL(todayUrl({ latitude: 40.4, longitude: -3.7 }));
+    expect(`${url.origin}${url.pathname}`).toBe('https://api.open-meteo.com/v1/forecast');
+    expect(url.searchParams.get('forecast_days')).toBe('2');
+    expect(url.searchParams.get('wind_speed_unit')).toBe('kmh');
+    expect(url.searchParams.get('timezone')).toBe('Europe/Madrid');
+    expect(url.searchParams.get('timeformat')).toBe('unixtime');
+    expect(url.searchParams.get('hourly')).toBe(
+      'temperature_2m,weather_code,is_day,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,precipitation_probability',
+    );
+  });
+});
+
+function todayData(times: string[]): OpenMeteoToday {
+  const n = times.length;
+  return {
+    hourly: {
+      time: times.map(unix),
+      temperature_2m: times.map((_, i) => 10 + i),
+      weather_code: Array<number>(n).fill(0),
+      is_day: Array<number>(n).fill(1),
+      pressure_msl: Array<number>(n).fill(1015),
+      wind_speed_10m: Array<number>(n).fill(5),
+      wind_direction_10m: Array<number>(n).fill(270),
+      wind_gusts_10m: times.map((_, i) => 20 + i),
+      precipitation: times.map((_, i) => i / 10),
+      precipitation_probability: times.map((_, i) => i * 10),
+    },
+  };
+}
+
+describe('toTodayHours', () => {
+  it('keeps today in Madrid and takes rain and gusts from the next hour', () => {
+    // 22:00 and 23:00 on 22 Oct in Madrid (UTC+2), then 00:00 on the 23rd.
+    const data = todayData(['2026-10-22T20:00:00Z', '2026-10-22T21:00:00Z', '2026-10-22T22:00:00Z']);
+    const hours = toTodayHours(data, Temporal.PlainDate.from('2026-10-22'));
+    expect(hours.map((h) => h.hour)).toEqual([22, 23]);
+    expect(hours[1]).toEqual({
+      hour: 23, tempC: 11, weatherCode: 0, isDay: true, pressureHpa: 1015, windKmh: 5, windDirDeg: 270,
+      gustKmh: 22, precipMm: 0.2, precipProbabilityPct: 20,
+    });
+  });
+  it('keeps both 2:00 hours when summer time ends', () => {
+    // 25 Oct 2026: 00:00Z is 02:00 at UTC+2, 01:00Z is 02:00 again at UTC+1, 02:00Z is 03:00.
+    const data = todayData(['2026-10-25T00:00:00Z', '2026-10-25T01:00:00Z', '2026-10-25T02:00:00Z']);
+    const hours = toTodayHours(data, Temporal.PlainDate.from('2026-10-25'));
+    expect(hours.map((h) => h.hour)).toEqual([2, 2, 3]);
+    expect(hours.map((h) => h.gustKmh)).toEqual([21, 22, null]);
+  });
+});
+
+describe('previousRunsUrl', () => {
+  it('asks the previous runs API for yesterday as forecast the day before', () => {
+    const url = new URL(previousRunsUrl({ latitude: 40.4, longitude: -3.7 }));
+    expect(`${url.origin}${url.pathname}`).toBe('https://previous-runs-api.open-meteo.com/v1/forecast');
+    expect(url.searchParams.get('hourly')).toBe('temperature_2m_previous_day1');
+    expect(url.searchParams.get('past_days')).toBe('1');
+    expect(url.searchParams.get('forecast_days')).toBe('1');
+    expect(url.searchParams.get('timezone')).toBe('Europe/Madrid');
+  });
+});
+
+describe('previousDayForecastMax', () => {
+  it('takes the highest of that Madrid day, skipping missing values', () => {
+    const data: OpenMeteoPreviousRuns = {
+      hourly: {
+        // 23:00 on the 20th, 14:00 and 15:00 on the 21st, 00:00 on the 22nd (Madrid, UTC+2).
+        time: ['2026-10-20T21:00:00Z', '2026-10-21T12:00:00Z', '2026-10-21T13:00:00Z', '2026-10-21T22:00:00Z'].map(unix),
+        temperature_2m_previous_day1: [30, 17.2, null, 25],
+      },
+    };
+    expect(previousDayForecastMax(data, Temporal.PlainDate.from('2026-10-21'))).toBe(17.2);
+  });
+  it('is null when the day has no values', () => {
+    const data: OpenMeteoPreviousRuns = { hourly: { time: [unix('2026-10-21T12:00:00Z')], temperature_2m_previous_day1: [null] } };
+    expect(previousDayForecastMax(data, Temporal.PlainDate.from('2026-10-21'))).toBeNull();
+  });
+});
+

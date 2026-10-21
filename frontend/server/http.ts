@@ -24,3 +24,8 @@ export function serverError(error: unknown): Response {
   console.error(error);
   return Response.json({ error: 'server error' }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
 }
+
+// Push subscriptions and the cron: answers that must never be cached.
+export function noStore(body: unknown, status = 200): Response {
+  return Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+}
