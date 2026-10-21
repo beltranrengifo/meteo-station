@@ -117,7 +117,7 @@ Then `pnpm dev:api` serves the dashboard and the local `/api` functions together
 
 ### Daily forecast push
 
-Installed on a phone as an app (PWA), the dashboard can send a notification at 9:00 (Madrid) with the day's forecast, corrected with the station's readings. Supabase `pg_cron` calls `/api/cron/daily-forecast` at 07:05 and 08:05 UTC and only the run that falls at 9 in Madrid acts; it sends at most once a day. The design is in [`docs/superpowers/specs/2026-10-21-daily-forecast-push-design.md`](docs/superpowers/specs/2026-10-21-daily-forecast-push-design.md) (Spanish). To set it up:
+Installed on a phone as an app (PWA), the dashboard can send a notification at 9:00 (Madrid) with the day's forecast, corrected with the station's readings. Supabase `pg_cron` calls `/api/cron/daily-forecast` at 07:05 and 08:05 UTC and only the run that falls at 9 in Madrid acts; it sends at most once a day. The design is in [`docs/superpowers/specs/2026-10-21-daily-forecast-push-design.md`](docs/superpowers/specs/2026-10-21-daily-forecast-push-design.md) (Spanish). Full guide in Spanish: [`docs/aviso-diario.md`](docs/aviso-diario.md). To set it up:
 
 1. Generate the VAPID keys with `npx web-push generate-vapid-keys` and the cron secret with `openssl rand -hex 32`.
 2. Store `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address) and `CRON_SECRET` in Vercel, for Production and Preview. Redeploy: `VITE_*` is fixed at build time.
