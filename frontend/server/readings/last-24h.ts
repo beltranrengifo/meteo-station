@@ -1,12 +1,11 @@
 // GET /api/last-24h: every one-minute reading of the last 24 hours, crossing midnight.
 import { Temporal } from 'temporal-polyfill';
-import type { Last24hResponse, ReadingRow } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { cachePolicy, last24hStart, localToday, rejectUnexpectedParams } from '../server/params.js';
-import { READING_COLUMNS, db, fetchAll, requestStation } from '../server/supabase.js';
+import type { Last24hResponse, ReadingRow } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { cachePolicy, last24hStart, localToday, rejectUnexpectedParams } from '../params.js';
+import { READING_COLUMNS, db, fetchAll, requestStation } from '../supabase.js';
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getLast24h(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, []);
   if (invalid) {
     return badRequest(invalid);

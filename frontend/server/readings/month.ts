@@ -1,12 +1,11 @@
 // GET /api/month?month=YYYY-MM: hourly and daily aggregates of that local (Madrid) month.
 import { Temporal } from 'temporal-polyfill';
-import type { MonthResponse } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { cachePolicy, localMidnight, parseMonth, rejectUnexpectedParams } from '../server/params.js';
-import { db, fetchAll, requestStation } from '../server/supabase.js';
+import type { MonthResponse } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { cachePolicy, localMidnight, parseMonth, rejectUnexpectedParams } from '../params.js';
+import { db, fetchAll, requestStation } from '../supabase.js';
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getMonth(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, ['month']);
   if (invalid) {
     return badRequest(invalid);

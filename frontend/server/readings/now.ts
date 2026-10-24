@@ -2,13 +2,12 @@
 // the install day, so the dashboard does not offer dates before it.
 // The summary comes from the aggregates, which the database refreshes every 10 minutes.
 import { Temporal } from 'temporal-polyfill';
-import type { NowResponse, ReadingRow } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { cachePolicy, localToday, rejectUnexpectedParams } from '../server/params.js';
-import { READING_COLUMNS, db, requestStation } from '../server/supabase.js';
+import type { NowResponse, ReadingRow } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { cachePolicy, localToday, rejectUnexpectedParams } from '../params.js';
+import { READING_COLUMNS, db, requestStation } from '../supabase.js';
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getNow(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, []);
   if (invalid) {
     return badRequest(invalid);

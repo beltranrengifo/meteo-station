@@ -2,13 +2,12 @@
 // Computed from the readings on each request (hourly_stats), so the current hour is exact;
 // the stored aggregates can be up to 10 minutes behind.
 import { Temporal } from 'temporal-polyfill';
-import type { Last7DaysResponse } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { cachePolicy, last7DaysStart, localToday, rejectUnexpectedParams } from '../server/params.js';
-import { db, requestStation } from '../server/supabase.js';
+import type { Last7DaysResponse } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { cachePolicy, last7DaysStart, localToday, rejectUnexpectedParams } from '../params.js';
+import { db, requestStation } from '../supabase.js';
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getLast7Days(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, []);
   if (invalid) {
     return badRequest(invalid);
