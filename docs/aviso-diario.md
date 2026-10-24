@@ -31,8 +31,7 @@ Ficheros (los que no empiezan por `backend/` están en `frontend/`):
 
 | Fichero | Para qué |
 |---|---|
-| `api/push/subscribe.ts` | Guarda la suscripción de un móvil. |
-| `api/push/unsubscribe.ts` | Borra la suscripción de un móvil. |
+| `api/push.ts` | `POST /api/push/subscribe` guarda la suscripción de un móvil y `POST /api/push/unsubscribe` la borra. Es una sola función de Vercel (el plan Hobby admite 12): `vercel.json` reescribe las dos URL a `/api/push?action=`. |
 | `api/cron/daily-forecast.ts` | El envío de las 9:05, y los modos de prueba. |
 | `server/daily-data.ts` | Reúne los datos de la estación y de Open-Meteo. |
 | `server/daily-temperature.ts` | Corrección de temperatura, máxima y mínima. |

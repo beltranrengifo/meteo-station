@@ -2,13 +2,12 @@
 // one-minute readings, long ones as hourly stats computed live (hourly_stats), so the current
 // hour is exact. Limits and resolution live in server/params.ts.
 import { Temporal } from 'temporal-polyfill';
-import type { RangeResponse, ReadingRow } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { cachePolicy, localToday, parseRange, rangeResolution, rejectUnexpectedParams } from '../server/params.js';
-import { READING_COLUMNS, db, fetchAll, requestStation } from '../server/supabase.js';
+import type { RangeResponse, ReadingRow } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { cachePolicy, localToday, parseRange, rangeResolution, rejectUnexpectedParams } from '../params.js';
+import { READING_COLUMNS, db, fetchAll, requestStation } from '../supabase.js';
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getRange(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, ['from', 'to']);
   if (invalid) {
     return badRequest(invalid);

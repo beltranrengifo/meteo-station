@@ -1,14 +1,13 @@
 // GET /api/daily: one summary row per local day since the station was installed (~365 a year).
-import type { DailyResponse } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { rejectUnexpectedParams } from '../server/params.js';
-import { db, fetchAll, requestStation } from '../server/supabase.js';
+import type { DailyResponse } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { rejectUnexpectedParams } from '../params.js';
+import { db, fetchAll, requestStation } from '../supabase.js';
 
 // Today's row changes with every aggregate refresh (10 min), so the whole list does too.
 const CACHE = { sMaxAge: 600, staleWhileRevalidate: 600 };
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getDaily(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, []);
   if (invalid) {
     return badRequest(invalid);
