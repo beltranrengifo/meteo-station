@@ -1,13 +1,12 @@
 // GET /api/day?date=YYYY-MM-DD: every one-minute reading of that local (Madrid) day,
 // plus the day's summary.
 import { Temporal } from 'temporal-polyfill';
-import type { DayResponse, ReadingRow } from '../shared/api-types.js';
-import { badRequest, json, notFound, serverError } from '../server/http.js';
-import { cachePolicy, localMidnight, parseDay, rejectUnexpectedParams } from '../server/params.js';
-import { READING_COLUMNS, db, fetchAll, requestStation } from '../server/supabase.js';
+import type { DayResponse, ReadingRow } from '../../shared/api-types.js';
+import { badRequest, json, notFound, serverError } from '../http.js';
+import { cachePolicy, localMidnight, parseDay, rejectUnexpectedParams } from '../params.js';
+import { READING_COLUMNS, db, fetchAll, requestStation } from '../supabase.js';
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export async function getDay(url: URL): Promise<Response> {
   const invalid = rejectUnexpectedParams(url, ['date']);
   if (invalid) {
     return badRequest(invalid);

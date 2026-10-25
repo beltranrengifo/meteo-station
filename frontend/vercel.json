@@ -1,4 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["lhr1"]
+  "regions": ["lhr1"],
+  "rewrites": [
+    { "source": "/api/:view(now|day|last-24h|last-7-days|range|month|daily)", "destination": "/api/readings?view=:view" },
+    { "source": "/api/push/:action(subscribe|unsubscribe)", "destination": "/api/push?action=:action" }
+  ]
 }

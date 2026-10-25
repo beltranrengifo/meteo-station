@@ -52,8 +52,12 @@ firmware/   PlatformIO project (Arduino framework, esp32dev; envs bench, station
   test/       Unity unit tests for lib/, run on the computer
 backend/    Supabase: migrations (readings, devices, hourly/daily aggregates, pg_cron), the ingest Edge Function, scripts/ (station keys)
 frontend/   Vite + React + TypeScript dashboard, deployed on Vercel
-  api/        read API: /api/now, /api/day?date=, /api/last-24h, /api/last-7-days, /api/range?from=&to=, /api/month?month=, /api/daily, /api/sky (CDN-cached)
-  server/     server-only helpers for api/ (Supabase secret key, param validation), Vitest tests
+  api/        Vercel Functions (at most 12 on the Hobby plan; keep helpers out of api/). Read API, CDN-cached:
+              /api/now, /api/day?date=, /api/last-24h, /api/last-7-days, /api/range?from=&to=, /api/month?month=,
+              /api/daily (all served by api/readings.ts through vercel.json rewrites), /api/sky, /api/forecast,
+              /api/stations, /api/daily-summary. Push: /api/push/subscribe, /api/push/unsubscribe (api/push.ts),
+              /api/cron/daily-forecast
+  server/     server-only helpers for api/ (Supabase secret key, param validation, readings/ views), Vitest tests
 docs/       design spec, bench-test log, assembly drawing (Spanish)
 ```
 
