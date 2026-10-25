@@ -104,7 +104,10 @@ pnpm dev:api               # dashboard + local /api functions (vercel dev); need
 pnpm test                  # unit tests (Vitest)
 pnpm typecheck             # TypeScript check
 pnpm gen:types             # regenerate database types after a Supabase migration
+pnpm db:push               # apply new migrations (backend/supabase/migrations)
 ```
+
+`gen:types` and `db:push` connect to Postgres with `SUPABASE_DB_URL` from `backend/.env.local` (see [`docs/nueva-estacion.md`](docs/nueva-estacion.md), step 5).
 
 Server-side env vars are listed in [`frontend/.env.example`](frontend/.env.example).
 

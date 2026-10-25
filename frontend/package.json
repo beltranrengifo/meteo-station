@@ -7,7 +7,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "gen:types": "cd ../backend && supabase gen types typescript --linked --schema public > ../frontend/shared/database.types.ts"
+    "gen:types": "cd ../backend && supabase gen types typescript --db-url \"$(grep '^SUPABASE_DB_URL=' .env.local | cut -d= -f2-)\" --schema public > ../frontend/shared/database.types.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.4.1",

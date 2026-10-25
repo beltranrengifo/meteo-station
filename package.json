@@ -8,6 +8,7 @@
     "test": "pnpm -C frontend test",
     "typecheck": "pnpm -C frontend typecheck",
     "gen:types": "pnpm -C frontend gen:types",
+    "db:push": "cd backend && supabase db push --db-url \"$(grep '^SUPABASE_DB_URL=' .env.local | cut -d= -f2-)\"",
     "firmware": "deno run -q --no-lock --node-modules-dir=none --allow-read --allow-net --allow-env --allow-run=pio,$HOME/.platformio/penv/bin/pio --env-file=backend/.env.local backend/scripts/firmware.ts",
     "station": "deno run -q --no-lock --node-modules-dir=none --allow-net --allow-env --env-file=backend/.env.local backend/scripts/station.ts"
   }

@@ -71,11 +71,12 @@ Cada estación tiene una versión objetivo (`devices.target_fw`). Si la que llev
 
 Una estación recién flasheada lleva el `FW_VERSION` de tu copia del repo. Para que siga a las demás, ponle de objetivo la última versión publicada (`pnpm firmware status` dice cuál llevan las otras): `pnpm firmware target meteo-station-pueblo <versión>`.
 
-**Una vez**, crea `backend/.env.local` (git lo ignora) con la URL y la clave secreta de Supabase (*Project Settings → API Keys*, la `sb_secret_...`):
+**Una vez**, crea `backend/.env.local` (git lo ignora) con la URL de Supabase, su clave `service_role` y la cadena de conexión a Postgres (las dos últimas, en las variables del servicio de Supabase en Coolify; la cadena la usan `pnpm db:push` y `pnpm gen:types`):
 
 ```sh
-SUPABASE_URL=https://<ref>.supabase.co
-SUPABASE_SECRET_KEY=sb_secret_...
+SUPABASE_URL=https://meteo.db.rengifo.dev
+SUPABASE_SECRET_KEY=eyJ...
+SUPABASE_DB_URL=postgresql://postgres:<contraseña>@meteo.db.rengifo.dev:5432/postgres?sslmode=require
 ```
 
 Para publicar una versión nueva, sube `FW_VERSION` en `firmware/include/config.h` (por ejemplo de `0.3.0` a `0.3.1`) y, desde la raíz del repo:
