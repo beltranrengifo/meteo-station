@@ -1,8 +1,8 @@
 #pragma once
 
 // Root certificates to verify the ingest and OTA HTTPS endpoints.
-// Self-hosted Supabase (meteo.db.rengifo.dev, Let's Encrypt). Chain seen on 2026-10-24:
-// meteo.db.rengifo.dev <- YR2 <- Root YR (cross-signed by ISRG Root X1). ISRG Root X2 is included in case
+// Self-hosted Supabase (Let's Encrypt). Chain seen on 2026-10-24:
+// leaf <- YR2 <- Root YR (cross-signed by ISRG Root X1). ISRG Root X2 is included in case
 // Let's Encrypt serves its ECDSA chain.
 // Supabase Cloud (*.supabase.co), kept so a firmware can still go back to it. Chain seen on 2026-10-08:
 // supabase.co <- WE1 <- GTS Root R4 (cross-signed by GlobalSign Root CA). GTS Root R1 is included in case

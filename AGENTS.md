@@ -28,7 +28,7 @@ Read `docs/contexto-estacion-meteo-code.md` first; it wins over `docs/estacion-m
 
 ### Testing policy (backend)
 - Pure logic of Edge Functions (validation, parsing) lives in its own module next to `index.ts` and is tested with `deno test` (agents may run it: it starts no server).
-- SQL migrations are validated when the user runs `supabase db push`; agents do not start a local Supabase.
+- SQL migrations are validated when the user runs `pnpm db:push` (`supabase db push` against the self-hosted Supabase, `SUPABASE_DB_URL` in `backend/.env.local`); agents do not start a local Supabase.
 - After deleting or editing rows in `public.readings`, run `select public.refresh_aggregates_rebuild();`: the incremental refresh only sees new inserts.
 ### Testing policy (frontend and read API)
 - Pure logic of the read API (params, Madrid days, cache times) lives in `frontend/server/` and is tested with Vitest. Agents may run `pnpm test` and `pnpm typecheck` in `frontend/`; neither starts a server. `pnpm dev` and `vercel dev` are servers, so the user starts them.
