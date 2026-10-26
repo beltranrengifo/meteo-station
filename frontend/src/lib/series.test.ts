@@ -75,6 +75,22 @@ describe('linePoints', () => {
       [wall('2026-10-14T08:05:00Z'), 20],
     ]);
   });
+
+  it('breaks the line where the clock falls back, so the repeated hour is not joined', () => {
+    // 2026-10-25: 03:00 summer time is 02:00 winter time, so 02:00-03:00 happens twice.
+    const series = fromReadings(
+      [reading('2026-10-25T00:58:00Z'), reading('2026-10-25T00:59:00Z'), reading('2026-10-25T01:00:00Z')],
+      '2026-10-24T22:00:00Z',
+      '2026-10-25T01:00:30Z',
+    );
+    const wall = (iso: string) => Date.parse(iso);
+    expect(linePoints(series, (s) => s.temp)).toEqual([
+      [wall('2026-10-25T02:58:00Z'), 20],
+      [wall('2026-10-25T02:59:00Z'), 20],
+      [wall('2026-10-25T02:59:00Z') + 1, null],
+      [wall('2026-10-25T02:00:00Z'), 20],
+    ]);
+  });
 });
 
 describe('rainBuckets', () => {

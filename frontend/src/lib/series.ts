@@ -133,6 +133,8 @@ const ms = (iso: string) => Temporal.Instant.from(iso).epochMilliseconds;
 
 // [Madrid wall-clock ms, value] pairs for an ECharts time axis. Where two samples are more than
 // two steps apart, a null point breaks the line, so a time the station was off is not bridged.
+// It also breaks where the clock falls back: the repeated hour is drawn over the first one, and
+// without the break a line would run back across the chart.
 export function linePoints(series: RangeSeries, pick: (s: Sample) => number | null): [number, number | null][] {
   return timePoints(series.samples, series.stepMinutes, pick);
 }
@@ -147,7 +149,8 @@ export function timePoints<T extends { ts: string }>(
   const points: [number, number | null][] = [];
   items.forEach((item, i) => {
     const previous = items[i - 1];
-    if (previous && ms(item.ts) - ms(previous.ts) > maxGapMs) {
+    const fallsBack = previous && toMadridWallClockMs(item.ts) < toMadridWallClockMs(previous.ts);
+    if (previous && (ms(item.ts) - ms(previous.ts) > maxGapMs || fallsBack)) {
       points.push([toMadridWallClockMs(previous.ts) + 1, null]);
     }
     points.push([toMadridWallClockMs(item.ts), pick(item)]);
