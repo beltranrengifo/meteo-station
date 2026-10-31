@@ -1,5 +1,5 @@
 // ECharts wrapper: registers only the chart types and components we use (smaller bundle)
-// and follows the system light/dark theme, with themes matching the dashboard's CSS tokens.
+// and follows the light/dark theme (lib/theme.ts), with themes matching the dashboard's CSS tokens.
 import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
 import { BrushComponent, GridComponent, LegendComponent, ToolboxComponent, TooltipComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
@@ -8,6 +8,7 @@ import type { EChartsOption } from 'echarts';
 // The ESM build: the CommonJS one (lib/) breaks the default import under Vite.
 import ReactEChartsCore from 'echarts-for-react/esm/core';
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { isDark } from '../lib/theme';
 
 // The brush needs the toolbox registered, even with no toolbox shown: without it no brushEnd fires.
 echarts.use([BarChart, LineChart, ScatterChart, BrushComponent, ToolboxComponent, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
@@ -100,7 +101,7 @@ interface ChartProps {
 }
 
 export function Chart({ option, height = 195, onBrush }: ChartProps) {
-  const dark = useMediaQuery('(prefers-color-scheme: dark)');
+  const dark = isDark(document.documentElement.dataset.theme, useMediaQuery('(prefers-color-scheme: dark)'));
   const canBrush = useCanBrush();
   const brush = Boolean(onBrush) && canBrush;
   // The chart echarts-for-react finally draws on, from onChartReady. Its getEchartsInstance()

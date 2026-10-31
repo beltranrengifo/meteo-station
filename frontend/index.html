@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Inline, so a theme forced in the URL is on before the first paint: see src/lib/theme.ts. -->
+    <script>
+      const theme = new URLSearchParams(location.search).get('theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    </script>
     <title>Gorraplanistas · El tiempo en Las Rozas</title>
     <meta
       name="description"
