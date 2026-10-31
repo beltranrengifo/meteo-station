@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Dark follows the system, unless the URL forced a theme: see lib/theme.ts. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:not([data-theme='light']) { @slot; }
+  }
+  &[data-theme='dark'] { @slot; }
+}
+
 /* Design from the v0 mock-up (diseno-de-meteo-station), with a dark mode added.
    Chart colors in components/Chart.tsx use the same values. */
 :root {
@@ -41,8 +49,8 @@
   --shadow: rgba(40, 60, 100, 0.06);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root {
+  @variant dark {
     color-scheme: dark;
     --background: #0f1422;
     --foreground: #e6eaf2;
