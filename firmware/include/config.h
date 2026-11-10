@@ -5,7 +5,7 @@
 // ---- Device ----
 // Device id, key and WiFi are not compiled in: each station keeps its own in NVS, set with the
 // setup portal (src/net/setup_portal.h). The same build runs on every station.
-#define FW_VERSION "0.5.0"
+#define FW_VERSION "0.5.1"
 
 // ---- Pins (validated on the bench) ----
 constexpr int PIN_I2C_SDA = 21;
@@ -44,6 +44,11 @@ constexpr uint32_t RAIN_DEBOUNCE_MS = 200;      // spec value; a tip every 10 s 
 // 1 ms each), so 0 for now: every closure counts, as with the plain debounce. Set it from
 // the "longest" times the bench live log shows for hand tips and for phantom tips.
 constexpr uint32_t RAIN_MIN_LOW_US = 0;
+// Noise check per minute (rainLooksLikeNoise): its rain is stored as 0 and a "rain" event
+// tells why. 2026-11-10 on the mast: bursts of up to 172 tips a minute, a few per second.
+constexpr uint32_t RAIN_MIN_TIP_GAP_MS = 2000;     // 0.28 mm in 2 s is 500 mm/h: no bucket fills that fast
+constexpr uint32_t RAIN_MAX_SHORT_GAPS = 1;        // one is tolerated: the bucket may rock back after a tip
+constexpr uint32_t RAIN_MAX_TIPS_PER_MINUTE = 10;  // 2.8 mm/min; ingest stores 0 above 3 mm
 
 // ---- Calibration ----
 constexpr float RAIN_MM_PER_TIP = 0.2794f;      // SparkFun SEN-15901 datasheet

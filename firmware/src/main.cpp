@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <esp_task_wdt.h>
+#include <rain_math.h>
 #include <reading.h>
 
 #include "config.h"
@@ -43,6 +44,13 @@ static void emitReading(time_t ts) {
   reading.windGustMs = wind.gustMs;
   reading.windDirDeg = vane.meanDeg;
   reading.rainMm = rain.mm;
+  if (rainLooksLikeNoise(rain.tips, rain.shortGaps, RAIN_MAX_TIPS_PER_MINUTE, RAIN_MAX_SHORT_GAPS)) {
+    // Noise on the gauge cable, not rain. The event shows its shape, to tune the filters.
+    reading.rainMm = 0;
+    logEvent("rain", "noise: %u tips, %u under %u ms apart, %u closures of %u-%u us; stored 0",
+             (unsigned)rain.tips, (unsigned)rain.shortGaps, (unsigned)RAIN_MIN_TIP_GAP_MS,
+             (unsigned)rain.closures, (unsigned)rain.shortestLowUs, (unsigned)rain.longestLowUs);
+  }
   reading.rssi = wifiIsConnected() ? wifiRssi() : RSSI_UNKNOWN;
   reading.uptimeS = millis() / 1000;
   reading.freeHeap = ESP.getFreeHeap();
