@@ -6,7 +6,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { needsUpdate, runningFirmware, SIGNED_URL_TTL_S, type UpdateOffer } from "./update.ts";
 import { type EventRow, validateEvent } from "./events.ts";
-import { keyHash, parseBody, type ReadingRow, validateReading } from "./validate.ts";
+import { keyHash, MAX_RAIN_MM_PER_MINUTE, parseBody, type ReadingRow, validateReading } from "./validate.ts";
 
 // New-style secret key ("default" entry of SUPABASE_SECRET_KEYS), legacy service role as fallback.
 function secretKey(): string {
@@ -88,12 +88,24 @@ Deno.serve(async (req) => {
   const now = new Date();
   const rows: ReadingRow[] = [];
   const rejected: { index: number; reason: string }[] = [];
+  const events: EventRow[] = [];
   batch.readings.forEach((item, index) => {
     const result = validateReading(item, now, deviceId);
-    if (result.ok) rows.push(result.row);
-    else rejected.push({ index, reason: result.reason });
+    if (!result.ok) {
+      rejected.push({ index, reason: result.reason });
+      return;
+    }
+    rows.push(result.row);
+    if (result.droppedRainMm !== undefined) {
+      // Stored as 0; the event keeps what the gauge sent, for pnpm station.
+      events.push({
+        device_id: deviceId,
+        ts: result.row.ts,
+        kind: "rain_dropped",
+        message: `${result.droppedRainMm} mm in one minute stored as 0 (limit ${MAX_RAIN_MM_PER_MINUTE} mm)`,
+      });
+    }
   });
-  const events: EventRow[] = [];
   const rejectedEvents: { index: number; reason: string }[] = [];
   batch.events.forEach((item, index) => {
     const result = validateEvent(item, now, deviceId);

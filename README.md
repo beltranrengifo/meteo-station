@@ -109,6 +109,8 @@ pnpm db:push               # apply new migrations (backend/supabase/migrations)
 
 `gen:types` and `db:push` connect to Postgres with `SUPABASE_DB_URL` from `backend/.env.local` (see [`docs/nueva-estacion.md`](docs/nueva-estacion.md), step 5).
 
+The `ingest` Edge Function is deployed by copying its `.ts` files (not the tests) to the function's folder on the Supabase server; no restart is needed, because each request starts a new worker. The exact command lives in the infra repo, `docs/supabase.md` (section Edge Functions), so the server path stays out of this repo. Commit first, so the server never runs code that is not in git. To check it, wait for the next reading and look for it in `readings`.
+
 Server-side env vars are listed in [`frontend/.env.example`](frontend/.env.example).
 
 ### Running the API locally (`pnpm dev:api`)

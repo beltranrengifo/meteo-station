@@ -12,6 +12,11 @@ static volatile uint32_t isrTooShort = 0;
 // Closures seen since the last diagnostics read, and the longest of them.
 static volatile uint32_t isrLows = 0;
 static volatile uint32_t isrLongestLowUs = 0;
+// The same, per summary period (rainGaugeTakeSummary), so the live log does not reset them.
+static volatile uint32_t isrShortGaps = 0;
+static volatile uint32_t isrPeriodLows = 0;
+static volatile uint32_t isrPeriodShortestLowUs = UINT32_MAX;
+static volatile uint32_t isrPeriodLongestLowUs = 0;
 static uint32_t totalTips = 0;
 static portMUX_TYPE isrMux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -20,15 +25,28 @@ static void IRAM_ATTR onRainEdge() {
   bool pinLow = digitalRead(PIN_RAIN) == LOW;
   uint64_t now = esp_timer_get_time();
   portENTER_CRITICAL_ISR(&isrMux);
+  uint64_t previousTipUs = isrFilter.lastCountedUs;
   PulseVerdict verdict = pulseFilterEdge(isrFilter, pinLow, now, RAIN_MIN_LOW_US, RAIN_DEBOUNCE_MS * 1000);
   if (verdict != PulseVerdict::None) {
+    uint32_t lowUs = isrFilter.lastLowUs;
     isrLows++;
-    if (isrFilter.lastLowUs > isrLongestLowUs) {
-      isrLongestLowUs = isrFilter.lastLowUs;
+    if (lowUs > isrLongestLowUs) {
+      isrLongestLowUs = lowUs;
+    }
+    isrPeriodLows++;
+    if (lowUs < isrPeriodShortestLowUs) {
+      isrPeriodShortestLowUs = lowUs;
+    }
+    if (lowUs > isrPeriodLongestLowUs) {
+      isrPeriodLongestLowUs = lowUs;
     }
   }
   if (verdict == PulseVerdict::Counted) {
     isrTips++;
+    // previousTipUs is 0 before the first tip since boot: never a short gap.
+    if (previousTipUs != 0 && now - previousTipUs < (uint64_t)RAIN_MIN_TIP_GAP_MS * 1000) {
+      isrShortGaps++;
+    }
   } else if (verdict == PulseVerdict::TooShort) {
     isrTooShort++;
   }
@@ -61,8 +79,16 @@ RainDiagnostics rainGaugeTakeDiagnostics() {
 RainSummary rainGaugeTakeSummary() {
   portENTER_CRITICAL(&isrMux);
   uint32_t tips = isrTips;
+  uint32_t shortGaps = isrShortGaps;
+  uint32_t closures = isrPeriodLows;
+  uint32_t shortestLowUs = closures > 0 ? isrPeriodShortestLowUs : 0;
+  uint32_t longestLowUs = isrPeriodLongestLowUs;
   isrTips = 0;
+  isrShortGaps = 0;
+  isrPeriodLows = 0;
+  isrPeriodShortestLowUs = UINT32_MAX;
+  isrPeriodLongestLowUs = 0;
   portEXIT_CRITICAL(&isrMux);
   totalTips += tips;
-  return {tips, rainMmFromTips(tips, RAIN_MM_PER_TIP)};
+  return {tips, rainMmFromTips(tips, RAIN_MM_PER_TIP), shortGaps, closures, shortestLowUs, longestLowUs};
 }

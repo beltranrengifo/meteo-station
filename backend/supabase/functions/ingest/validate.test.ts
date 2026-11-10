@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { keyHash, MAX_BATCH, MAX_EVENTS, parseBody, validateReading } from "./validate.ts";
+import { keyHash, MAX_BATCH, MAX_EVENTS, MAX_RAIN_MM_PER_MINUTE, parseBody, validateReading } from "./validate.ts";
 
 const NOW = new Date("2026-10-20T10:15:30Z");
 const DEVICE = "meteo-station-1";
@@ -52,6 +52,16 @@ Deno.test("accepts readings without health, from firmware before 0.4.0", () => {
 Deno.test("drops unknown fields from the stored row", () => {
   const result = validateReading(reading({ extra: "x" }), NOW, DEVICE);
   assertEquals(result.ok && "extra" in result.row, false);
+});
+
+Deno.test("keeps rain up to the plausible limit per minute", () => {
+  const result = validateReading(reading({ rain_mm: MAX_RAIN_MM_PER_MINUTE }), NOW, DEVICE);
+  assertEquals(result.ok && [result.row.rain_mm, result.droppedRainMm], [MAX_RAIN_MM_PER_MINUTE, undefined]);
+});
+
+Deno.test("keeps the reading but stores rain 0 when the gauge sent more than a minute can rain", () => {
+  const result = validateReading(reading({ rain_mm: 35.4838, temp_c: 12.4 }), NOW, DEVICE);
+  assertEquals(result.ok && [result.row.rain_mm, result.row.temp_c, result.droppedRainMm], [0, 12.4, 35.4838]);
 });
 
 Deno.test("accepts readings from the station buffer up to 7 days old", () => {

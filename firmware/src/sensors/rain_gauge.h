@@ -5,6 +5,11 @@
 struct RainSummary {
   uint32_t tips;
   float mm;
+  // For the noise check and its event, all for the same period as tips:
+  uint32_t shortGaps;      // tips less than RAIN_MIN_TIP_GAP_MS after the previous one
+  uint32_t closures;       // reed closures, counted or not
+  uint32_t shortestLowUs;  // shortest and longest of those closures (0 if none)
+  uint32_t longestLowUs;
 };
 
 // Pin and interrupt setup. Tips are counted in the background from here on.
