@@ -26,7 +26,14 @@ export type ReadingRow = {
   wifi_disconnects: number | null;
 };
 
-export type ValidationResult = { ok: true; row: ReadingRow } | { ok: false; reason: string };
+// More rain than this in one minute is gauge noise, not weather: about 3 mm/min (180 mm/h)
+// is already a rare cloudburst. The reading is kept with rain 0, so its other fields are not lost.
+export const MAX_RAIN_MM_PER_MINUTE = 3;
+
+// droppedRainMm is the rain the station sent when it was over MAX_RAIN_MM_PER_MINUTE.
+export type ValidationResult =
+  | { ok: true; row: ReadingRow; droppedRainMm?: number }
+  | { ok: false; reason: string };
 
 type FieldRule = {
   required: boolean;
@@ -43,7 +50,8 @@ const NUMBER_FIELDS: Record<string, FieldRule> = {
   wind_avg_ms: { required: true, integer: false, min: 0, max: 75 },
   wind_gust_ms: { required: true, integer: false, min: 0, max: 100 },
   wind_dir_deg: { required: false, integer: true, min: 0, max: 359 },
-  rain_mm: { required: true, integer: false, min: 0, max: 50 },
+  // No upper bound here: too much rain is stored as 0 (MAX_RAIN_MM_PER_MINUTE), not rejected.
+  rain_mm: { required: true, integer: false, min: 0, max: Number.MAX_VALUE },
   rssi: { required: false, integer: true, min: -127, max: 0 },
   uptime_s: { required: true, integer: true, min: 0, max: Number.MAX_SAFE_INTEGER },
   // Health, sent from firmware 0.4.0 on.
@@ -102,6 +110,7 @@ export function validateReading(raw: unknown, now: Date, deviceId: string): Vali
     return { ok: false, reason: "fw must be a short string" };
   }
 
+  const rainSent = r.rain_mm as number;
   // Only known fields reach the database.
   const row: ReadingRow = {
     device_id: deviceId,
@@ -112,13 +121,16 @@ export function validateReading(raw: unknown, now: Date, deviceId: string): Vali
     wind_avg_ms: r.wind_avg_ms as number,
     wind_gust_ms: r.wind_gust_ms as number,
     wind_dir_deg: (r.wind_dir_deg ?? null) as number | null,
-    rain_mm: r.rain_mm as number,
+    rain_mm: rainSent > MAX_RAIN_MM_PER_MINUTE ? 0 : rainSent,
     rssi: (r.rssi ?? null) as number | null,
     uptime_s: r.uptime_s as number,
     fw: r.fw,
     free_heap: (r.free_heap ?? null) as number | null,
     wifi_disconnects: (r.wifi_disconnects ?? null) as number | null,
   };
+  if (rainSent > MAX_RAIN_MM_PER_MINUTE) {
+    return { ok: true, row, droppedRainMm: rainSent };
+  }
   return { ok: true, row };
 }
 
