@@ -56,12 +56,41 @@ Deno.test("drops unknown fields from the stored row", () => {
 
 Deno.test("keeps rain up to the plausible limit per minute", () => {
   const result = validateReading(reading({ rain_mm: MAX_RAIN_MM_PER_MINUTE }), NOW, DEVICE);
-  assertEquals(result.ok && [result.row.rain_mm, result.droppedRainMm], [MAX_RAIN_MM_PER_MINUTE, undefined]);
+  assertEquals(result.ok && [result.row.rain_mm, result.dropped], [MAX_RAIN_MM_PER_MINUTE, []]);
 });
 
 Deno.test("keeps the reading but stores rain 0 when the gauge sent more than a minute can rain", () => {
   const result = validateReading(reading({ rain_mm: 35.4838, temp_c: 12.4 }), NOW, DEVICE);
-  assertEquals(result.ok && [result.row.rain_mm, result.row.temp_c, result.droppedRainMm], [0, 12.4, 35.4838]);
+  assertEquals(
+    result.ok && [result.row.rain_mm, result.row.temp_c, result.dropped],
+    [0, 12.4, [{ field: "rain_mm", sent: 35.4838, stored: 0, why: "over 3 mm in one minute" }]],
+  );
+});
+
+Deno.test("keeps the reading but stores null for an optional field out of its physical range", () => {
+  const result = validateReading(reading({ rssi: 5, wind_avg_ms: 3.2 }), NOW, DEVICE);
+  assertEquals(
+    result.ok && [result.row.rssi, result.row.wind_avg_ms, result.dropped],
+    [null, 3.2, [{ field: "rssi", sent: 5, stored: null, why: "out of range" }]],
+  );
+});
+
+Deno.test("one BME280 value out of range drops all three: the sensor derives them together", () => {
+  // 2026-11-11 on the mast: a wet BME280 sent impossible temperatures for hours.
+  const result = validateReading(reading({ temp_c: 145.6, humidity_pct: 100, pressure_hpa: 940.2 }), NOW, DEVICE);
+  assertEquals(
+    result.ok && [result.row.temp_c, result.row.humidity_pct, result.row.pressure_hpa, result.dropped],
+    [null, null, null, [
+      { field: "temp_c", sent: 145.6, stored: null, why: "out of range" },
+      { field: "humidity_pct", sent: 100, stored: null, why: "same sensor as temp_c" },
+      { field: "pressure_hpa", sent: 940.2, stored: null, why: "same sensor as temp_c" },
+    ]],
+  );
+});
+
+Deno.test("a BME280 that sent nothing drops nothing", () => {
+  const result = validateReading(reading({ temp_c: null, humidity_pct: null, pressure_hpa: null }), NOW, DEVICE);
+  assertEquals(result.ok && result.dropped, []);
 });
 
 Deno.test("accepts readings from the station buffer up to 7 days old", () => {
@@ -92,16 +121,12 @@ Deno.test("rejects readings older than 7 days", () => {
   assertEquals(reasonOf(reading({ ts: "2026-10-13T10:15:00Z" })), "ts is older than 7 days");
 });
 
-Deno.test("rejects values outside physical ranges", () => {
-  assertEquals(reasonOf(reading({ temp_c: 75 })), "temp_c out of range");
-  assertEquals(reasonOf(reading({ humidity_pct: 101 })), "humidity_pct out of range");
-  assertEquals(reasonOf(reading({ pressure_hpa: 500 })), "pressure_hpa out of range");
+Deno.test("rejects required values outside physical ranges", () => {
+  // Required fields have no null to fall back on.
   assertEquals(reasonOf(reading({ wind_avg_ms: -1 })), "wind_avg_ms out of range");
-  assertEquals(reasonOf(reading({ wind_dir_deg: 360 })), "wind_dir_deg out of range");
+  assertEquals(reasonOf(reading({ wind_gust_ms: 101 })), "wind_gust_ms out of range");
   assertEquals(reasonOf(reading({ rain_mm: -0.1 })), "rain_mm out of range");
-  assertEquals(reasonOf(reading({ rssi: 5 })), "rssi out of range");
-  assertEquals(reasonOf(reading({ free_heap: -1 })), "free_heap out of range");
-  assertEquals(reasonOf(reading({ wifi_disconnects: 1.5 })), "wifi_disconnects must be an integer or null");
+  assertEquals(reasonOf(reading({ uptime_s: -1 })), "uptime_s out of range");
 });
 
 Deno.test("rejects wrong types and missing required fields", () => {
@@ -109,6 +134,7 @@ Deno.test("rejects wrong types and missing required fields", () => {
   assertEquals(reasonOf(reading({ wind_dir_deg: 22.5 })), "wind_dir_deg must be an integer or null");
   assertEquals(reasonOf(reading({ rain_mm: null })), "rain_mm is required");
   assertEquals(reasonOf(reading({ wind_avg_ms: undefined })), "wind_avg_ms is required");
+  assertEquals(reasonOf(reading({ wifi_disconnects: 1.5 })), "wifi_disconnects must be an integer or null");
   assertEquals(reasonOf("not an object"), "reading must be an object");
 });
 

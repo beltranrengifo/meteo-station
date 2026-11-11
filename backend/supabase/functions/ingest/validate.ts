@@ -30,9 +30,15 @@ export type ReadingRow = {
 // is already a rare cloudburst. The reading is kept with rain 0, so its other fields are not lost.
 export const MAX_RAIN_MM_PER_MINUTE = 3;
 
-// droppedRainMm is the rain the station sent when it was over MAX_RAIN_MM_PER_MINUTE.
+// A value the station sent that is not weather: stored as `stored` instead, so the rest of
+// the reading is kept. index.ts turns each one into an event.
+export type DroppedValue = { field: string; sent: number; stored: number | null; why: string };
+
+// The BME280 computes humidity and pressure from its temperature: if one is garbage, so are all.
+const BME280_FIELDS = ["temp_c", "humidity_pct", "pressure_hpa"];
+
 export type ValidationResult =
-  | { ok: true; row: ReadingRow; droppedRainMm?: number }
+  | { ok: true; row: ReadingRow; dropped: DroppedValue[] }
   | { ok: false; reason: string };
 
 type FieldRule = {
@@ -42,7 +48,8 @@ type FieldRule = {
   max: number;
 };
 
-// Physical limits: anything outside is a sensor or firmware fault, not weather.
+// Physical limits: anything outside is a sensor or firmware fault, not weather. An optional
+// field out of range is stored as null; a required one rejects the reading.
 const NUMBER_FIELDS: Record<string, FieldRule> = {
   temp_c: { required: false, integer: false, min: -40, max: 60 },
   humidity_pct: { required: false, integer: false, min: 0, max: 100 },
@@ -101,37 +108,58 @@ export function validateReading(raw: unknown, now: Date, deviceId: string): Vali
     return { ok: false, reason: "ts is older than 7 days" };
   }
 
+  const values: Record<string, number | null> = {};
+  const dropped: DroppedValue[] = [];
   for (const [name, rule] of Object.entries(NUMBER_FIELDS)) {
     const error = checkNumber(name, r[name], rule);
-    if (error) return { ok: false, reason: error };
+    const value = (r[name] ?? null) as number | null;
+    if (error === `${name} out of range` && !rule.required) {
+      dropped.push({ field: name, sent: value as number, stored: null, why: "out of range" });
+      values[name] = null;
+    } else if (error) {
+      return { ok: false, reason: error };
+    } else {
+      values[name] = value;
+    }
+  }
+  const badBme = dropped.find((d) => BME280_FIELDS.includes(d.field));
+  if (badBme) {
+    for (const name of BME280_FIELDS) {
+      const value = values[name];
+      if (value !== null) {
+        dropped.push({ field: name, sent: value, stored: null, why: `same sensor as ${badBme.field}` });
+        values[name] = null;
+      }
+    }
+  }
+  const rainSent = values.rain_mm as number;
+  if (rainSent > MAX_RAIN_MM_PER_MINUTE) {
+    dropped.push({ field: "rain_mm", sent: rainSent, stored: 0, why: `over ${MAX_RAIN_MM_PER_MINUTE} mm in one minute` });
+    values.rain_mm = 0;
   }
 
   if (typeof r.fw !== "string" || r.fw.length === 0 || r.fw.length > 32) {
     return { ok: false, reason: "fw must be a short string" };
   }
 
-  const rainSent = r.rain_mm as number;
   // Only known fields reach the database.
   const row: ReadingRow = {
     device_id: deviceId,
     ts: r.ts,
-    temp_c: (r.temp_c ?? null) as number | null,
-    humidity_pct: (r.humidity_pct ?? null) as number | null,
-    pressure_hpa: (r.pressure_hpa ?? null) as number | null,
-    wind_avg_ms: r.wind_avg_ms as number,
-    wind_gust_ms: r.wind_gust_ms as number,
-    wind_dir_deg: (r.wind_dir_deg ?? null) as number | null,
-    rain_mm: rainSent > MAX_RAIN_MM_PER_MINUTE ? 0 : rainSent,
-    rssi: (r.rssi ?? null) as number | null,
-    uptime_s: r.uptime_s as number,
+    temp_c: values.temp_c,
+    humidity_pct: values.humidity_pct,
+    pressure_hpa: values.pressure_hpa,
+    wind_avg_ms: values.wind_avg_ms as number,
+    wind_gust_ms: values.wind_gust_ms as number,
+    wind_dir_deg: values.wind_dir_deg,
+    rain_mm: values.rain_mm as number,
+    rssi: values.rssi,
+    uptime_s: values.uptime_s as number,
     fw: r.fw,
-    free_heap: (r.free_heap ?? null) as number | null,
-    wifi_disconnects: (r.wifi_disconnects ?? null) as number | null,
+    free_heap: values.free_heap,
+    wifi_disconnects: values.wifi_disconnects,
   };
-  if (rainSent > MAX_RAIN_MM_PER_MINUTE) {
-    return { ok: true, row, droppedRainMm: rainSent };
-  }
-  return { ok: true, row };
+  return { ok: true, row, dropped };
 }
 
 export type ParsedBody = { ok: true; readings: unknown[]; events: unknown[] } | { ok: false; reason: string };

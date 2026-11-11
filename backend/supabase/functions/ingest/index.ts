@@ -6,7 +6,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { needsUpdate, runningFirmware, SIGNED_URL_TTL_S, type UpdateOffer } from "./update.ts";
 import { type EventRow, validateEvent } from "./events.ts";
-import { keyHash, MAX_RAIN_MM_PER_MINUTE, parseBody, type ReadingRow, validateReading } from "./validate.ts";
+import { keyHash, parseBody, type ReadingRow, validateReading } from "./validate.ts";
 
 // New-style secret key ("default" entry of SUPABASE_SECRET_KEYS), legacy service role as fallback.
 function secretKey(): string {
@@ -96,13 +96,13 @@ Deno.serve(async (req) => {
       return;
     }
     rows.push(result.row);
-    if (result.droppedRainMm !== undefined) {
-      // Stored as 0; the event keeps what the gauge sent, for pnpm station.
+    // The stored row has 0 or null there; the event keeps what the station sent, for pnpm station.
+    for (const d of result.dropped) {
       events.push({
         device_id: deviceId,
         ts: result.row.ts,
-        kind: "rain_dropped",
-        message: `${result.droppedRainMm} mm in one minute stored as 0 (limit ${MAX_RAIN_MM_PER_MINUTE} mm)`,
+        kind: d.field === "rain_mm" ? "rain_dropped" : "value_dropped",
+        message: `${d.field} ${d.sent} ${d.why}, stored as ${d.stored}`,
       });
     }
   });
