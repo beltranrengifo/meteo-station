@@ -5,7 +5,7 @@
 // ---- Device ----
 // Device id, key and WiFi are not compiled in: each station keeps its own in NVS, set with the
 // setup portal (src/net/setup_portal.h). The same build runs on every station.
-#define FW_VERSION "0.5.1"
+#define FW_VERSION "0.5.2"
 
 // ---- Pins (validated on the bench) ----
 constexpr int PIN_I2C_SDA = 21;
@@ -53,7 +53,7 @@ constexpr uint32_t RAIN_MAX_TIPS_PER_MINUTE = 10;  // 2.8 mm/min; ingest stores 
 // ---- Calibration ----
 constexpr float RAIN_MM_PER_TIP = 0.2794f;      // SparkFun SEN-15901 datasheet
 constexpr float WIND_MS_PER_HZ = 0.667f;        // 1 pulse/s = 2.4 km/h = 0.667 m/s
-constexpr float VANE_OFFSET_DEG = 0.0f;         // set after orienting the vane on the mast
+constexpr float VANE_OFFSET_DEG = 45.0f;        // vane held to north read 315 (NW), 2026-11-17
 
 // Vane: only 8 directions are reliably distinguishable.
 // ADC values are 12-bit, measured with a 10k divider at 3.3 V.
