@@ -10,6 +10,7 @@
     "gen:types": "pnpm -C frontend gen:types",
     "db:push": "cd backend && supabase db push --db-url \"$(grep '^SUPABASE_DB_URL=' .env.local | cut -d= -f2-)\"",
     "firmware": "deno run -q --no-lock --node-modules-dir=none --allow-read --allow-net --allow-env --allow-run=pio,$HOME/.platformio/penv/bin/pio --env-file=backend/.env.local backend/scripts/firmware.ts",
+    "backfill": "deno run -q --no-lock --node-modules-dir=none --allow-net --allow-env --allow-read --env-file=backend/.env.local backend/scripts/backfill-estimates.ts",
     "station": "deno run -q --no-lock --node-modules-dir=none --allow-net --allow-env --env-file=backend/.env.local backend/scripts/station.ts"
   }
 }
