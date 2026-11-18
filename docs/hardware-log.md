@@ -139,3 +139,21 @@
   - Firmware 0.5.1: a minute with more than 10 tips, or more than one tip less than 2 s after the previous one, is noise: its rain is sent as 0 and a `rain` event reports tips, short gaps and the shortest and longest reed closure. Published with `pnpm firmware publish station` and set with `pnpm firmware target`. The board restarted into 0.5.1 at 17:42:24, back on WiFi 3 s later (RSSI -72 dBm), and its first reading at 17:43 kept the new firmware. No minute lost.
   - Cause not confirmed: noise on the gauge line (GPIO 26), as on the bench (meteo-mu1) and with the bad GND of 2026-10-20. The watchdog reboot may be an interrupt storm from the same noise. Still to do when it stops raining: check the box and terminals for water, and add a 100 nF capacitor between terminal 26 and GND.
 - config.h changes: `RAIN_MIN_TIP_GAP_MS` 2000, `RAIN_MAX_SHORT_GAPS` 1, `RAIN_MAX_TIPS_PER_MINUTE` 10 (new); `FW_VERSION` 0.5.1.
+
+## 2026-11-17 — Fix: new ESP32 on the mast, vane north offset, fw 0.5.2 (meteo-pis)
+- Goal: get the station back on the mast after the old ESP32 died, with the vane pointing north.
+- Setup: meteo-station-lasrozas-1, new ESP32 on the same expansion board, everything rewired, station build 0.5.1 flashed over USB, device id and key set again in the WiFi portal. Mounted on the mast at 17:13 (Madrid time).
+- Result: OK except the rain gauge (next entry). Temperature, humidity, pressure, wind and vane readings from the first minute.
+- Problems and fix:
+  - Old ESP32: brownout boot loop even bare, with a good cable. Damaged by corrosion; replaced.
+  - Vane held to north read 315°. The mount turns only in steps, so the fix is in firmware: `VANE_OFFSET_DEG` 45, fw 0.5.2 over the air (PR #20). The board restarted into 0.5.2 at 17:23:25 and kept it after its first upload.
+  - Data: indoor readings and events before 17:13 deleted; 0.5.1 wind directions from 17:14 to 17:23 corrected by +45°; the 17:18 direction (vane held by hand) set to null; aggregates rebuilt. SQL in the Supabase editor.
+- config.h changes: `VANE_OFFSET_DEG` 0 to 45; `FW_VERSION` 0.5.2.
+
+## 2026-11-18 — Fix: rain gauge back on GPIO 26
+- Goal: find why the rain gauge stored no rain after the 2026-11-17 rewiring, after some rain overnight.
+- Setup: meteo-station-lasrozas-1 on the mast, station build 0.5.2.
+- Result: OK. After the fix, 5 tips by hand at 17:17 (Madrid time) were all seen by the board (`rain` event: 5 tips, 10 closures). Fast tips, under 2 s apart, so the noise filter stored 0 as designed. First real rain tip stored at 17:21. Vane held to north from 17:21 to 17:22 read 0°, so the 45° offset is right.
+- Problems and fix:
+  - The rewiring followed the pin table of `docs/contexto-estacion-meteo-code.md`, which still said GPIO 33. On this expansion board terminal 33 has no continuity to the ESP32's pin 33 (as found on 2026-10-20), so the board never saw a tip. Fix: rain gauge wire and its pull-up resistor moved to terminal 26, where `PIN_RAIN` already was. The doc now says 26.
+- config.h changes: none.
