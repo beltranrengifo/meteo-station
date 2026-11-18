@@ -46,7 +46,7 @@ Los cuatro sensores leen correctamente en la mesa, por separado y juntos (BME280
 | I²C SDA (BME280) | 21 | `Wire.begin(21, 22)` |
 | I²C SCL (BME280) | 22 | |
 | Anemómetro | 32 | Pull-up 10 kΩ a 3V3, `INPUT_PULLUP`, interrupción `FALLING` |
-| Pluviómetro | 33 | Pull-up 10 kΩ a 3V3, `INPUT_PULLUP`, interrupción `CHANGE` (filtro por ancho de pulso) |
+| Pluviómetro | 26 | Pull-up 10 kΩ a 3V3, `INPUT_PULLUP`, interrupción `CHANGE` (filtro por ancho de pulso) |
 | Veleta | 34 | Hilo a 3V3, hilo a GPIO 34, **10 kΩ de GPIO 34 a GND** (divisor). ADC1 |
 | LED estado | 2 | Opcional |
 
@@ -63,7 +63,7 @@ Nota: en el montaje final se podrá **reasignar pines** para que el cableado sea
 - Hilos **2 y 3 → anemómetro** (2 a GPIO 32, 3 a GND)
 
 **RJ11 de lluvia** (otro adaptador):
-- Hilos **2 y 3 → pluviómetro** (2 a GPIO 33, 3 a GND). Sin polaridad.
+- Hilos **2 y 3 → pluviómetro** (2 a GPIO 26, 3 a GND). Sin polaridad.
 
 **Código de colores:** rojo = 3,3 V · negro = GND · amarillo = señal anemómetro · azul = señal veleta. En la mesa el pluviómetro también usa un latiguillo azul por falta de colores; en el montaje final darle **otro color** (p. ej. verde).
 
