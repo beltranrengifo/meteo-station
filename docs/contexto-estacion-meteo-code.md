@@ -50,6 +50,8 @@ Los cuatro sensores leen correctamente en la mesa, por separado y juntos (BME280
 | Veleta | 34 | Hilo a 3V3, hilo a GPIO 34, **10 kΩ de GPIO 34 a GND** (divisor). ADC1 |
 | LED estado | 2 | Opcional |
 
+**Pines muertos de la placa de expansión actual:** las bornas **33** y **25** no conectan con el ESP32 (medido con continuidad el 2026-10-20 y otra vez el 2026-11-18). No usarlas. La fuente de verdad de los pines es `firmware/include/config.h`: antes de recablear, comprobar esta tabla contra ese fichero y medir continuidad entre cada borna usada y su patilla del ESP32.
+
 Nota: en el montaje final se podrá **reasignar pines** para que el cableado sea cómodo (p. ej. GPIO 17 está libre y accesible). Reglas: contadores en pines con interrupción; veleta solo en ADC1 (32–39); nunca 6–11 (flash). Si se cambia, cambiar código y documentación a la vez. **Por ahora no se cambia nada.**
 
 ## Cableado actual
